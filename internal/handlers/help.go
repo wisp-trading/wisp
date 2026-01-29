@@ -2,7 +2,7 @@ package handlers
 
 import (
 	tea "github.com/charmbracelet/bubbletea"
-	"github.com/charmbracelet/lipgloss"
+	"github.com/wisp-trading/wisp/internal/ui"
 )
 
 // helpModel represents the help screen TUI
@@ -37,34 +37,13 @@ func (m helpModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 }
 
 func (m helpModel) View() string {
-	titleStyle := lipgloss.NewStyle().
-		Bold(true).
-		Foreground(lipgloss.Color("#00D9FF")).
-		PaddingTop(1).
-		PaddingBottom(1)
-
-	sectionStyle := lipgloss.NewStyle().
-		Foreground(lipgloss.Color("#7C3AED")).
-		Bold(true).
-		PaddingTop(1)
-
-	commandStyle := lipgloss.NewStyle().
-		Foreground(lipgloss.Color("#00D9FF")).
-		Bold(true)
-
-	descStyle := lipgloss.NewStyle().
-		Foreground(lipgloss.Color("#D1D5DB"))
-
-	mutedStyle := lipgloss.NewStyle().
-		Foreground(lipgloss.Color("#6B7280")).
-		Italic(true)
 
 	// Build content as lines for scrolling
 	lines := []string{}
-	lines = append(lines, titleStyle.Render("🚀 WISP CLI v0.1.0"))
-	lines = append(lines, mutedStyle.Render("Trading infrastructure platform"))
+	lines = append(lines, ui.TitleCenteredStyle.Render("🚀 WISP CLI v0.1.0"))
+	lines = append(lines, ui.MutedStyle.Render("Trading infrastructure platform"))
 	lines = append(lines, "")
-	lines = append(lines, sectionStyle.Render("📋 COMMANDS"))
+	lines = append(lines, ui.SectionHeaderStyle.Render("📋 COMMANDS"))
 	lines = append(lines, "")
 
 	commands := []struct{ cmd, desc string }{
@@ -77,8 +56,8 @@ func (m helpModel) View() string {
 	}
 
 	for _, c := range commands {
-		lines = append(lines, "  "+commandStyle.Render(c.cmd))
-		lines = append(lines, "    "+descStyle.Render(c.desc))
+		lines = append(lines, "  "+ui.CommandStyle.Render(c.cmd))
+		lines = append(lines, "    "+ui.TextStyle.Render(c.desc))
 		lines = append(lines, "")
 	}
 
@@ -103,13 +82,13 @@ func (m helpModel) View() string {
 
 	// Scroll indicators
 	if start > 0 {
-		s = mutedStyle.Render("↑ Scroll up for more") + "\n" + s
+		s = ui.MutedStyle.Render("↑ Scroll up for more") + "\n" + s
 	}
 	if end < len(lines) {
-		s += mutedStyle.Render("↓ Scroll down for more") + "\n"
+		s += ui.MutedStyle.Render("↓ Scroll down for more") + "\n"
 	}
 
-	s += "\n" + mutedStyle.Render("↑↓/jk Scroll  q/esc/enter Exit")
+	s += "\n" + ui.MutedStyle.Render("↑↓/jk Scroll  q/esc/enter Exit")
 
 	return "\n" + s + "\n"
 }

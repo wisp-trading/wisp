@@ -1,8 +1,6 @@
 package compile
 
 import (
-	"fmt"
-	"strings"
 	"time"
 
 	tea "github.com/charmbracelet/bubbletea"
@@ -51,28 +49,6 @@ func tickProgress() tea.Cmd {
 	return tea.Tick(time.Millisecond*100, func(t time.Time) tea.Msg {
 		return progressTickMsg(t)
 	})
-}
-
-// renderProgressBar creates a simple ASCII progress bar
-func renderProgressBar(percent float64, width int) string {
-	filled := int(percent * float64(width))
-	if filled > width {
-		filled = width
-	}
-
-	bar := strings.Repeat("█", filled)
-	empty := strings.Repeat("░", width-filled)
-
-	percentStr := fmt.Sprintf("%.0f%%", percent*100)
-
-	progressStyle := lipgloss.NewStyle().
-		Foreground(ui.ColorSuccess).
-		Bold(true)
-
-	emptyStyle := lipgloss.NewStyle().
-		Foreground(ui.ColorMuted)
-
-	return progressStyle.Render(bar) + emptyStyle.Render(empty) + " " + percentStr
 }
 
 func (m *compileModel) Init() tea.Cmd {
@@ -124,7 +100,7 @@ func (m *compileModel) View() string {
 	status := ui.SubtitleStyle.Render("Building plugin binary...")
 
 	// Progress bar (width 50 characters)
-	progressBar := renderProgressBar(m.progressValue, 50)
+	progressBar := ui.RenderProgressBar(m.progressValue, 50)
 
 	// Animated spinner based on frame
 	spinners := []string{"⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"}

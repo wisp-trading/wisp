@@ -147,12 +147,7 @@ func (m *ConnectorListModel) View() string {
 
 	// Error message if any
 	if m.err != nil {
-		errorBox := lipgloss.NewStyle().
-			Foreground(ui.ColorDanger).
-			Bold(true).
-			Border(lipgloss.RoundedBorder()).
-			BorderForeground(ui.ColorDanger).
-			Padding(0, 2).
+		errorBox := ui.ErrorBoxStyle.Copy().
 			Width(68).
 			Render("❌ " + m.err.Error())
 		content.WriteString(errorBox)
@@ -161,27 +156,18 @@ func (m *ConnectorListModel) View() string {
 
 	// Success message if any
 	if m.successMsg != "" {
-		successMsg := lipgloss.NewStyle().
-			Foreground(ui.ColorSuccess).
-			Bold(true).
-			Render("✓ " + m.successMsg)
+		successMsg := ui.StatusReadyStyle.Render("✓ " + m.successMsg)
 		content.WriteString(successMsg)
 		content.WriteString("\n\n")
 	}
 
 	// Section 1: Configured Connectors
-	sectionHeader := lipgloss.NewStyle().
-		Foreground(ui.ColorSecondary).
-		Bold(true).
-		Render("📋 CONFIGURED CONNECTORS")
+	sectionHeader := ui.SectionHeaderStyle.Render("📋 CONFIGURED CONNECTORS")
 	content.WriteString(sectionHeader)
 	content.WriteString("\n\n")
 
 	if len(m.configured) == 0 {
-		emptyMsg := lipgloss.NewStyle().
-			Foreground(ui.ColorMuted).
-			Italic(true).
-			Render("   No connectors configured yet")
+		emptyMsg := ui.MutedStyle.Render("   No connectors configured yet")
 		content.WriteString(emptyMsg)
 		content.WriteString("\n")
 	} else {
@@ -194,18 +180,12 @@ func (m *ConnectorListModel) View() string {
 	content.WriteString("\n")
 
 	// Section 2: Add New Connector
-	addHeader := lipgloss.NewStyle().
-		Foreground(ui.ColorSecondary).
-		Bold(true).
-		Render("➕ ADD NEW CONNECTOR")
+	addHeader := ui.SectionHeaderStyle.Render("➕ ADD NEW CONNECTOR")
 	content.WriteString(addHeader)
 	content.WriteString("\n\n")
 
 	if len(m.available) == 0 {
-		emptyMsg := lipgloss.NewStyle().
-			Foreground(ui.ColorMuted).
-			Italic(true).
-			Render("   All available connectors are configured")
+		emptyMsg := ui.MutedStyle.Render("   All available connectors are configured")
 		content.WriteString(emptyMsg)
 		content.WriteString("\n")
 	} else {
@@ -244,80 +224,62 @@ func (m *ConnectorListModel) renderConfiguredConnector(conn config.Connector, se
 	// Name with network badge
 	name := nameStyle.Render(conn.Name)
 	if conn.Network != "" {
-		networkColor := ui.ColorSecondary
+		var networkBadge string
 		if conn.Network == "testnet" {
-			networkColor = ui.ColorWarning
+			networkBadge = ui.NetworkBadgeWarningStyle.Render(" [" + conn.Network + "]")
+		} else {
+			networkBadge = ui.NetworkBadgeStyle.Render(" [" + conn.Network + "]")
 		}
-		networkBadge := lipgloss.NewStyle().
-			Foreground(networkColor).
-			Render(" [" + conn.Network + "]")
 		name += networkBadge
 	}
 	content.WriteString(name)
 	content.WriteString("\n")
 
 	// Status indicator
-	var statusStyle lipgloss.Style
 	var statusText string
 	if conn.Enabled {
-		statusStyle = ui.StatusReadyStyle
-		statusText = "● ENABLED"
+		statusText = ui.StatusReadyStyle.Render("● ENABLED")
 	} else {
-		statusStyle = lipgloss.NewStyle().
-			Foreground(ui.ColorMuted).
-			Bold(true)
-		statusText = "○ DISABLED"
+		statusText = ui.StatusDisabledStyle.Render("○ DISABLED")
 	}
-	status := statusStyle.Render(statusText)
-	content.WriteString(status)
+	content.WriteString(statusText)
 
 	return itemStyle.Render(content.String())
 }
 
 func (m *ConnectorListModel) renderAvailableConnector(name string, selected bool) string {
 	cursor := "  "
-	style := lipgloss.NewStyle().Foreground(ui.ColorMuted)
+	style := ui.MutedStyle.Copy().Italic(false)
 
 	if selected {
-		cursor = lipgloss.NewStyle().
-			Foreground(ui.ColorPrimary).
-			Bold(true).
-			Render("▶ ")
-		style = lipgloss.NewStyle().
-			Foreground(ui.ColorPrimary).
-			Bold(true)
+		cursor = ui.SelectedItemStyle.Render("▶ ")
+		style = ui.SelectedItemStyle
 	}
 
-	bullet := lipgloss.NewStyle().
-		Foreground(ui.ColorSecondary).
-		Render("• ")
+	bullet := ui.SectionHeaderStyle.Copy().Bold(false).Render("• ")
 
 	line := cursor + bullet + style.Render(name) + "\n"
 	return line
 }
 
 func (m *ConnectorListModel) getHelpText() string {
-	keyStyle := lipgloss.NewStyle().
-		Foreground(ui.ColorPrimary).
-		Bold(true)
-
 	if m.inAvailableSection {
 		return fmt.Sprintf(
 			"%s/%s Navigate  %s Add Connector  %s Back",
-			keyStyle.Render("↑"),
-			keyStyle.Render("↓"),
-			keyStyle.Render("Enter"),
-			keyStyle.Render("q"),
+			ui.KeyHintStyle.Render("↑"),
+			ui.KeyHintStyle.Render("↓"),
+			ui.KeyHintStyle.Render("Enter"),
+			ui.KeyHintStyle.Render("q"),
 		)
 	}
 
 	return fmt.Sprintf(
 		"%s/%s Navigate  %s Edit  %s Delete  %s Toggle  %s Back",
-		keyStyle.Render("↑"),
-		keyStyle.Render("↓"),
-		keyStyle.Render("Enter"),
-		keyStyle.Render("d"),
-		keyStyle.Render("Space"),
-		keyStyle.Render("q"),
+		ui.KeyHintStyle.Render("↑"),
+		ui.KeyHintStyle.Render("↓"),
+		ui.KeyHintStyle.Render("Enter"),
+		ui.KeyHintStyle.Render("d"),
+		ui.KeyHintStyle.Render("Space"),
+		ui.KeyHintStyle.Render("q"),
 	)
 }
