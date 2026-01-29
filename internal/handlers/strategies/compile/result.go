@@ -49,8 +49,7 @@ func (m *resultModel) View() string {
 		// Success
 		statusIcon := ui.StatusReadyStyle.Render("✅ SUCCESS")
 		message := ui.SubtitleStyle.Render("Strategy has been compiled successfully")
-		details := lipgloss.NewStyle().
-			Foreground(ui.ColorMuted).
+		details := ui.MutedStyle.Copy().Italic(false).
 			Render("• Plugin binary created\n• Ready for backtest or live trading")
 
 		statusSection = lipgloss.JoinVertical(

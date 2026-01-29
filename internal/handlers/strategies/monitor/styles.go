@@ -1,8 +1,6 @@
 package monitor
 
 import (
-	"fmt"
-
 	"github.com/charmbracelet/lipgloss"
 	"github.com/wisp-trading/wisp/internal/ui"
 )
@@ -52,29 +50,10 @@ var (
 				Padding(0, 1).
 				Background(ui.ColorBgSelected).
 				Foreground(ui.ColorPrimary)
-
-	// PnL styles
-	PnLProfitStyle = lipgloss.NewStyle().
-			Foreground(ui.ColorSuccess).
-			Bold(true)
-
-	PnLLossStyle = lipgloss.NewStyle().
-			Foreground(ui.ColorDanger).
-			Bold(true)
-
-	PnLNeutralStyle = lipgloss.NewStyle().
-			Foreground(ui.ColorMuted)
 )
 
-// FormatPnL formats a PnL value with appropriate styling
-func FormatPnL(value float64) string {
-	if value > 0 {
-		return PnLProfitStyle.Render(fmt.Sprintf("+$%.2f", value))
-	} else if value < 0 {
-		return PnLLossStyle.Render(fmt.Sprintf("-$%.2f", -value))
-	}
-	return PnLNeutralStyle.Render("$0.00")
-}
+// FormatPnL is a convenience wrapper around ui.FormatPnL
+var FormatPnL = ui.FormatPnL
 
 // FormatHealthBar renders a health bar (0-5)
 func FormatHealthBar(level int) string {

@@ -5,8 +5,8 @@ import (
 	"strings"
 
 	tea "github.com/charmbracelet/bubbletea"
-	"github.com/charmbracelet/lipgloss"
 	"github.com/wisp-trading/wisp/internal/setup/services"
+	"github.com/wisp-trading/wisp/internal/ui"
 )
 
 // Screen types for init flow
@@ -132,46 +132,18 @@ func (m InitTUIModel) View() string {
 }
 
 func (m InitTUIModel) viewStrategySelection() string {
-	titleStyle := lipgloss.NewStyle().
-		Bold(true).
-		Foreground(lipgloss.Color("#00D9FF")).
-		PaddingTop(1).
-		PaddingBottom(1)
-
-	boxStyle := lipgloss.NewStyle().
-		Border(lipgloss.RoundedBorder()).
-		BorderForeground(lipgloss.Color("#7C3AED")).
-		Padding(2, 4).
-		Width(70)
-
-	selectedStyle := lipgloss.NewStyle().
-		Foreground(lipgloss.Color("#00D9FF")).
-		Bold(true)
-
-	itemStyle := lipgloss.NewStyle().
-		PaddingLeft(2)
-
-	descStyle := lipgloss.NewStyle().
-		Foreground(lipgloss.Color("#6B7280")).
-		PaddingLeft(4).
-		Width(60)
-
-	mutedStyle := lipgloss.NewStyle().
-		Foreground(lipgloss.Color("#6B7280")).
-		Italic(true)
-
-	title := titleStyle.Render("🆕 CREATE NEW PROJECT")
+	title := ui.TitleStyle.Render("🆕 CREATE NEW PROJECT")
 
 	var s string
 	s += "\n" + title + "\n\n"
 
 	if len(m.strategies) == 0 {
-		s += mutedStyle.Render("No strategies available. Check SDK connection.") + "\n\n"
-		s += mutedStyle.Render("q Quit")
-		return boxStyle.Render(s)
+		s += ui.MutedStyle.Render("No strategies available. Check SDK connection.") + "\n\n"
+		s += ui.MutedStyle.Render("q Quit")
+		return ui.MenuBoxStyle.Copy().Width(70).Render(s)
 	}
 
-	s += mutedStyle.Render("Select a strategy template to get started:") + "\n\n"
+	s += ui.MutedStyle.Render("Select a strategy template to get started:") + "\n\n"
 
 	for i, strategy := range m.strategies {
 		cursor := "  "
@@ -182,65 +154,39 @@ func (m InitTUIModel) viewStrategySelection() string {
 
 		if m.cursor == i {
 			cursor = "▶ "
-			s += selectedStyle.Render(cursor+icon+" "+strategy.DisplayName) + "\n"
-			s += descStyle.Render(strategy.Description) + "\n"
+			s += ui.SelectedItemStyle.Render(cursor+icon+" "+strategy.DisplayName) + "\n"
+			s += ui.DescriptionStyle.Render(strategy.Description) + "\n"
 		} else {
-			s += itemStyle.Render(cursor+icon+" "+strategy.DisplayName) + "\n"
+			s += ui.ItemStyle.Render(cursor+icon+" "+strategy.DisplayName) + "\n"
 		}
 		if i < len(m.strategies)-1 {
 			s += "\n"
 		}
 	}
 
-	s += "\n\n" + mutedStyle.Render("↑↓/jk Navigate  ↵ Select  q Quit")
+	s += "\n\n" + ui.MutedStyle.Render("↑↓/jk Navigate  ↵ Select  q Quit")
 
-	return boxStyle.Render(s)
+	return ui.MenuBoxStyle.Copy().Width(70).Render(s)
 }
 
 func (m InitTUIModel) viewProjectName() string {
-	titleStyle := lipgloss.NewStyle().
-		Bold(true).
-		Foreground(lipgloss.Color("#00D9FF")).
-		PaddingTop(1).
-		PaddingBottom(1)
-
-	boxStyle := lipgloss.NewStyle().
-		Border(lipgloss.RoundedBorder()).
-		BorderForeground(lipgloss.Color("#7C3AED")).
-		Padding(2, 4).
-		Width(70)
-
-	labelStyle := lipgloss.NewStyle().
-		Foreground(lipgloss.Color("#D1D5DB"))
-
-	inputStyle := lipgloss.NewStyle().
-		Foreground(lipgloss.Color("#00D9FF")).
-		Bold(true)
-
-	mutedStyle := lipgloss.NewStyle().
-		Foreground(lipgloss.Color("#6B7280")).
-		Italic(true)
-
-	errorStyle := lipgloss.NewStyle().
-		Foreground(lipgloss.Color("#EF4444"))
-
-	title := titleStyle.Render("🆕 CREATE NEW PROJECT")
+	title := ui.TitleStyle.Render("🆕 CREATE NEW PROJECT")
 
 	var s string
 	s += "\n" + title + "\n\n"
-	s += labelStyle.Render(fmt.Sprintf("Selected Strategy: %s", m.selectedStrategy.DisplayName)) + "\n\n"
-	s += mutedStyle.Render("Enter a name for your project:") + "\n"
-	s += mutedStyle.Render("(Spaces will be converted to underscores)") + "\n\n"
+	s += ui.LabelStyle.Copy().Width(0).Render(fmt.Sprintf("Selected Strategy: %s", m.selectedStrategy.DisplayName)) + "\n\n"
+	s += ui.MutedStyle.Render("Enter a name for your project:") + "\n"
+	s += ui.MutedStyle.Render("(Spaces will be converted to underscores)") + "\n\n"
 
-	s += labelStyle.Render("Project Name: ") + inputStyle.Render(m.projectNameInput+"_") + "\n\n"
+	s += ui.LabelStyle.Copy().Width(0).Render("Project Name: ") + ui.InputStyle.Render(m.projectNameInput+"_") + "\n\n"
 
 	if m.err != nil {
-		s += errorStyle.Render("✗ "+m.err.Error()) + "\n\n"
+		s += ui.ErrorBoxStyle.Copy().Width(0).Render("✗ "+m.err.Error()) + "\n\n"
 	}
 
-	s += mutedStyle.Render("↵ Create  ⎋ Back  ^C Cancel")
+	s += ui.MutedStyle.Render("↵ Create  ⎋ Back  ^C Cancel")
 
-	return boxStyle.Render(s)
+	return ui.MenuBoxStyle.Copy().Width(70).Render(s)
 }
 
 // RunInitTUI runs the init TUI flow and returns the selected strategy and project name

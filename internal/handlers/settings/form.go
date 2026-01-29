@@ -371,13 +371,7 @@ func (m *ConnectorFormModel) saveConnector() error {
 
 func (m *ConnectorFormModel) View() string {
 	if m.err != nil {
-		errorBox := lipgloss.NewStyle().
-			Foreground(ui.ColorDanger).
-			Bold(true).
-			Border(lipgloss.RoundedBorder()).
-			BorderForeground(ui.ColorDanger).
-			Padding(1, 2).
-			Render("❌ " + m.err.Error())
+		errorBox := ui.ErrorBoxStyle.Render("❌ " + m.err.Error())
 		return errorBox
 	}
 
@@ -397,13 +391,7 @@ func (m *ConnectorFormModel) View() string {
 func (m *ConnectorFormModel) renderDetailView() string {
 	// Guard: should never be here without a connector name
 	if m.connector.Name == "" {
-		errorBox := lipgloss.NewStyle().
-			Foreground(ui.ColorDanger).
-			Bold(true).
-			Border(lipgloss.RoundedBorder()).
-			BorderForeground(ui.ColorDanger).
-			Padding(1, 2).
-			Render("❌ No connector loaded\n\nPress 'q' to go back")
+		errorBox := ui.ErrorBoxStyle.Render("❌ No connector loaded\n\nPress 'q' to go back")
 		return errorBox
 	}
 
@@ -419,57 +407,38 @@ func (m *ConnectorFormModel) renderDetailView() string {
 	if m.connector.Enabled {
 		statusBadge = ui.StatusReadyStyle.Render("● ENABLED")
 	} else {
-		statusBadge = lipgloss.NewStyle().
-			Foreground(ui.ColorMuted).
-			Bold(true).
-			Render("○ DISABLED")
+		statusBadge = ui.StatusDisabledStyle.Render("○ DISABLED")
 	}
 	content.WriteString(statusBadge)
 	content.WriteString("\n\n")
 
 	// Detail box
-	detailStyle := lipgloss.NewStyle().
-		Border(lipgloss.RoundedBorder()).
-		BorderForeground(ui.ColorPrimary).
-		Padding(1, 2).
-		Width(68)
-
 	var details strings.Builder
 
 	// Exchange type
-	labelStyle := lipgloss.NewStyle().
-		Foreground(ui.ColorMuted).
-		Width(15)
-	valueStyle := lipgloss.NewStyle().
-		Foreground(ui.ColorPrimary).
-		Bold(true)
-
-	details.WriteString(labelStyle.Render("Exchange:"))
+	details.WriteString(ui.LabelStyle.Render("Exchange:"))
 	details.WriteString(" ")
-	details.WriteString(valueStyle.Render(m.connector.Name))
+	details.WriteString(ui.ValueStyle.Render(m.connector.Name))
 	details.WriteString("\n\n")
 
 	// Network
-	details.WriteString(labelStyle.Render("Network:"))
+	details.WriteString(ui.LabelStyle.Render("Network:"))
 	details.WriteString(" ")
 	networkValue := m.connector.Network
 	if networkValue == "" {
 		networkValue = "mainnet"
 	}
-	networkStyle := valueStyle
+	var networkStyle lipgloss.Style
 	if networkValue == "testnet" {
-		networkStyle = lipgloss.NewStyle().
-			Foreground(ui.ColorWarning).
-			Bold(true)
+		networkStyle = ui.NetworkBadgeWarningStyle.Copy().Bold(true)
+	} else {
+		networkStyle = ui.ValueStyle
 	}
 	details.WriteString(networkStyle.Render(networkValue))
 	details.WriteString("\n\n")
 
 	// Credentials section
-	credHeaderStyle := lipgloss.NewStyle().
-		Foreground(ui.ColorSecondary).
-		Bold(true)
-	details.WriteString(credHeaderStyle.Render("Credentials"))
+	details.WriteString(ui.SectionHeaderStyle.Render("Credentials"))
 	details.WriteString("\n\n")
 
 	// Get required fields from SDK for this exchange
@@ -481,7 +450,7 @@ func (m *ConnectorFormModel) renderDetailView() string {
 	// Show each credential field dynamically
 	for _, fieldName := range requiredFields {
 		fieldLabel := formatFieldName(fieldName) + ":"
-		details.WriteString(labelStyle.Render(fieldLabel))
+		details.WriteString(ui.LabelStyle.Render(fieldLabel))
 		details.WriteString(" ")
 
 		if value, exists := m.connector.Credentials[fieldName]; exists && len(value) > 3 {
@@ -489,41 +458,29 @@ func (m *ConnectorFormModel) renderDetailView() string {
 			if strings.Contains(strings.ToLower(fieldName), "key") ||
 				strings.Contains(strings.ToLower(fieldName), "secret") {
 				masked := value[:3] + strings.Repeat("•", minInt(len(value)-3, 20))
-				details.WriteString(lipgloss.NewStyle().
-					Foreground(ui.ColorSuccess).
-					Render(masked))
+				details.WriteString(ui.StatusReadyStyle.Render(masked))
 			} else {
 				// Show addresses/usernames plainly
-				details.WriteString(lipgloss.NewStyle().
-					Foreground(ui.ColorSuccess).
-					Render(value))
+				details.WriteString(ui.StatusReadyStyle.Render(value))
 			}
 		} else {
-			details.WriteString(lipgloss.NewStyle().
-				Foreground(ui.ColorDanger).
-				Render("Not set"))
+			details.WriteString(ui.StatusDangerStyle.Render("Not set"))
 		}
 		details.WriteString("\n")
 	}
 
-	content.WriteString(detailStyle.Render(details.String()))
+	content.WriteString(ui.DetailBoxStyle.Render(details.String()))
 	content.WriteString("\n\n")
 
 	// Help text
-	helpStyle := lipgloss.NewStyle().
-		Foreground(ui.ColorMuted)
-	keyStyle := lipgloss.NewStyle().
-		Foreground(ui.ColorPrimary).
-		Bold(true)
-
 	help := fmt.Sprintf(
 		"%s Edit  %s Toggle  %s Delete  %s Back",
-		keyStyle.Render("e"),
-		keyStyle.Render("Space"),
-		keyStyle.Render("d"),
-		keyStyle.Render("q"),
+		ui.KeyHintStyle.Render("e"),
+		ui.KeyHintStyle.Render("Space"),
+		ui.KeyHintStyle.Render("d"),
+		ui.KeyHintStyle.Render("q"),
 	)
-	content.WriteString(helpStyle.Render(help))
+	content.WriteString(ui.HelpStyle.Copy().Padding(0).Render(help))
 
 	return content.String()
 }
