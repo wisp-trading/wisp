@@ -5,11 +5,11 @@ import (
 	"fmt"
 	"os"
 
-	strategyTypes "github.com/backtesting-org/kronos-cli/pkg/strategy"
-	"github.com/backtesting-org/kronos-sdk/pkg/types/config"
+	"github.com/wisp-trading/sdk/pkg/types/config"
+	strategyTypes "github.com/wisp-trading/wisp/pkg/strategy"
 
-	"github.com/backtesting-org/kronos-cli/pkg/live"
-	"github.com/backtesting-org/kronos-sdk/pkg/types/logging"
+	"github.com/wisp-trading/sdk/pkg/types/logging"
+	"github.com/wisp-trading/wisp/pkg/live"
 )
 
 type LiveService interface {

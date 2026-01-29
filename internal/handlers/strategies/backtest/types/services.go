@@ -1,7 +1,7 @@
 package types
 
 import (
-	"github.com/backtesting-org/kronos-sdk/pkg/types/config"
+	"github.com/wisp-trading/sdk/pkg/types/config"
 )
 
 type AnalyzeService interface {

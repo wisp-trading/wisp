@@ -17,7 +17,7 @@ func NewVersionCommand() VersionCommandResult {
 			Use:   "version",
 			Short: "Show version information",
 			Run: func(cmd *cobra.Command, args []string) {
-				cmd.Println("Kronos CLI v0.1.0")
+				cmd.Println("Wisp CLI v0.1.0")
 			},
 		},
 	}

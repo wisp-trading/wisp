@@ -9,15 +9,15 @@ import (
 	"path/filepath"
 	"time"
 
-	monitoring2 "github.com/backtesting-org/kronos-sdk/pkg/types/monitoring"
-	"github.com/backtesting-org/kronos-sdk/pkg/types/portfolio"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	monitoring2 "github.com/wisp-trading/sdk/pkg/types/monitoring"
+	"github.com/wisp-trading/sdk/pkg/types/portfolio"
 
-	"github.com/backtesting-org/kronos-cli/internal/services/monitoring"
-	"github.com/backtesting-org/kronos-sdk/pkg/types/connector"
-	"github.com/backtesting-org/kronos-sdk/pkg/types/kronos/numerical"
-	"github.com/backtesting-org/kronos-sdk/pkg/types/strategy"
+	"github.com/wisp-trading/sdk/pkg/types/connector"
+	"github.com/wisp-trading/sdk/pkg/types/strategy"
+	"github.com/wisp-trading/sdk/pkg/types/wisp/numerical"
+	"github.com/wisp-trading/wisp/internal/services/monitoring"
 )
 
 var _ = Describe("Querier", func() {

@@ -1,8 +1,8 @@
 package backtest
 
 import (
-	"github.com/backtesting-org/kronos-cli/internal/handlers/strategies/backtest/handlers"
-	"github.com/backtesting-org/kronos-cli/internal/handlers/strategies/backtest/services"
+	"github.com/wisp-trading/wisp/internal/handlers/strategies/backtest/handlers"
+	"github.com/wisp-trading/wisp/internal/handlers/strategies/backtest/services"
 	"go.uber.org/fx"
 )
 

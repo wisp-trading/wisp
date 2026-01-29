@@ -1,8 +1,8 @@
 package strategies
 
 import (
-	"github.com/backtesting-org/kronos-cli/internal/handlers/strategies/browse"
-	"github.com/backtesting-org/kronos-cli/internal/handlers/strategies/compile"
+	"github.com/wisp-trading/wisp/internal/handlers/strategies/browse"
+	"github.com/wisp-trading/wisp/internal/handlers/strategies/compile"
 	"go.uber.org/fx"
 )
 

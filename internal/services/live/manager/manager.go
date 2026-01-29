@@ -8,10 +8,10 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/backtesting-org/kronos-cli/pkg/live"
-	"github.com/backtesting-org/kronos-sdk/pkg/types/config"
-	"github.com/backtesting-org/kronos-sdk/pkg/types/logging"
 	"github.com/google/uuid"
+	"github.com/wisp-trading/sdk/pkg/types/config"
+	"github.com/wisp-trading/sdk/pkg/types/logging"
+	"github.com/wisp-trading/wisp/pkg/live"
 )
 
 type instanceManager struct {

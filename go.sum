@@ -36,10 +36,6 @@ github.com/aymanbagabas/go-osc52/v2 v2.0.1 h1:HwpRHbFMcZLEVr42D4p7XBqjyuxQH5SMiE
 github.com/aymanbagabas/go-osc52/v2 v2.0.1/go.mod h1:uYgXzlJ7ZpABp8OJ+exZzJJhRNQ2ASbcXHWsFqH8hp8=
 github.com/aymanbagabas/go-udiff v0.2.0 h1:TK0fH4MteXUDspT88n8CKzvK0X9O2xu9yQjWpi6yML8=
 github.com/aymanbagabas/go-udiff v0.2.0/go.mod h1:RE4Ex0qsGkTAJoQdQQCA0uG+nAzJO/pI/QwceO5fgrA=
-github.com/backtesting-org/kronos-sdk v0.0.7 h1:QpTP4wgwcbbis8zPwjXt/ob0+3I94R02E7wHwWa/Flg=
-github.com/backtesting-org/kronos-sdk v0.0.7/go.mod h1:1XUlnHAk+8E8OAL/P48BAHBTm8NrBgvi7SDvxQ5R4Mo=
-github.com/backtesting-org/live-trading v0.0.0-20260115064332-fa986a9bb185 h1:URhLCXoihtdmpxLJ3Pht9msxtGvt+IEPwhzVP3UzYlY=
-github.com/backtesting-org/live-trading v0.0.0-20260115064332-fa986a9bb185/go.mod h1:bp8o/sJqOubJZUFzAB9wS6z2pngB0+e09EEJswEt2pE=
 github.com/bitly/go-simplejson v0.5.1 h1:xgwPbetQScXt1gh9BmoJ6j9JMr3TElvuIyjR8pgdoow=
 github.com/bitly/go-simplejson v0.5.1/go.mod h1:YOPVLzCfwK14b4Sff3oP1AmGhI9T9Vsg84etUnlyp+Q=
 github.com/bits-and-blooms/bitset v1.24.0 h1:H4x4TuulnokZKvHLfzVRTHJfFfnHEeSYJizujEZvmAM=
@@ -358,6 +354,10 @@ github.com/vmihailenco/msgpack/v5 v5.4.1 h1:cQriyiUvjTwOHg8QZaPihLWeRAAVoCpE00IU
 github.com/vmihailenco/msgpack/v5 v5.4.1/go.mod h1:GaZTsDaehaPpQVyxrf5mtQlH+pc21PIudVV/E3rRQok=
 github.com/vmihailenco/tagparser/v2 v2.0.0 h1:y09buUbR+b5aycVFQs/g70pqKVZNBmxwAhO7/IwNM9g=
 github.com/vmihailenco/tagparser/v2 v2.0.0/go.mod h1:Wri+At7QHww0WTrCBeu4J6bNtoV6mEfg5OIWRZA9qds=
+github.com/wisp-trading/connectors v0.0.1 h1:h89ERp8UWsQRdZQvCE6UzlaVDzwZxSTm1fLRj5oZfUs=
+github.com/wisp-trading/connectors v0.0.1/go.mod h1:BgRPGiCaUODb3O3H9yaXpMO7m4naX2kHhKXXUEyn1c4=
+github.com/wisp-trading/sdk v0.0.8 h1:83d/KDS8MxK+JkE/RXem2uAKPI4s/l5YT25uUVJU1LE=
+github.com/wisp-trading/sdk v0.0.8/go.mod h1:xGW/k69puJaj8uMmKPM8eoD+jbY7DWySCo972OZToWs=
 github.com/xo/terminfo v0.0.0-20210125001918-ca9a967f8778/go.mod h1:2MuV+tbUrU1zIOPMxZ5EncGwgmMJsa+9ucAQZXxsObs=
 github.com/xo/terminfo v0.0.0-20220910002029-abceb7e1c41e h1:JVG44RsyaB9T2KIHavMF/ppJZNG9ZpyihvCd0w101no=
 github.com/xo/terminfo v0.0.0-20220910002029-abceb7e1c41e/go.mod h1:RbqR21r5mrJuqunuUZ/Dhy/avygyECGrLceyNeo4LiM=

@@ -5,12 +5,12 @@ import (
 	"strings"
 	"time"
 
-	"github.com/backtesting-org/kronos-cli/internal/ui"
-	"github.com/backtesting-org/kronos-sdk/pkg/types/connector"
-	"github.com/backtesting-org/kronos-sdk/pkg/types/monitoring"
-	"github.com/backtesting-org/kronos-sdk/pkg/types/strategy"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
+	"github.com/wisp-trading/sdk/pkg/types/connector"
+	"github.com/wisp-trading/sdk/pkg/types/monitoring"
+	"github.com/wisp-trading/sdk/pkg/types/strategy"
+	"github.com/wisp-trading/wisp/internal/ui"
 )
 
 // PositionsModel is a tab that displays positions data

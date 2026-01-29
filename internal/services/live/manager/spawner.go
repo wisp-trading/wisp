@@ -7,9 +7,9 @@ import (
 	"os/exec"
 	"syscall"
 
-	"github.com/backtesting-org/kronos-cli/pkg/live"
-	"github.com/backtesting-org/kronos-sdk/pkg/types/config"
-	"github.com/backtesting-org/kronos-sdk/pkg/types/logging"
+	"github.com/wisp-trading/sdk/pkg/types/config"
+	"github.com/wisp-trading/sdk/pkg/types/logging"
+	"github.com/wisp-trading/wisp/pkg/live"
 )
 
 type processSpawner struct {
@@ -23,11 +23,11 @@ func NewProcessSpawner(logger logging.ApplicationLogger) live.ProcessSpawner {
 	}
 }
 
-// Spawn creates a new kronos run-strategy process
+// Spawn creates a new wisp run-strategy process
 func (ps *processSpawner) Spawn(ctx context.Context, strategy *config.Strategy) (*exec.Cmd, error) {
-	// Build command: kronos run-strategy --strategy <name>
+	// Build command: wisp run-strategy --strategy <name>
 	// The run-strategy command will look in ./strategies/{strategyName}
-	cmd := exec.CommandContext(ctx, "kronos", "run-strategy", "--strategy", strategy.Name)
+	cmd := exec.CommandContext(ctx, "wisp", "run-strategy", "--strategy", strategy.Name)
 
 	// Create new process group (survive parent exit)
 	cmd.SysProcAttr = &syscall.SysProcAttr{
@@ -35,7 +35,7 @@ func (ps *processSpawner) Spawn(ctx context.Context, strategy *config.Strategy) 
 	}
 
 	// Create instance log directory
-	instanceLogDir := fmt.Sprintf(".kronos/instances/%s", strategy.Name)
+	instanceLogDir := fmt.Sprintf(".wisp/instances/%s", strategy.Name)
 	if err := os.MkdirAll(instanceLogDir, 0755); err != nil {
 		return nil, fmt.Errorf("failed to create instance log directory: %w", err)
 	}

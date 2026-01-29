@@ -1,9 +1,9 @@
 package handlers
 
 import (
-	"github.com/backtesting-org/kronos-cli/internal/handlers/settings"
-	"github.com/backtesting-org/kronos-cli/internal/handlers/strategies"
-	"github.com/backtesting-org/kronos-cli/internal/handlers/strategies/monitor"
+	"github.com/wisp-trading/wisp/internal/handlers/settings"
+	"github.com/wisp-trading/wisp/internal/handlers/strategies"
+	"github.com/wisp-trading/wisp/internal/handlers/strategies/monitor"
 	"go.uber.org/fx"
 )
 

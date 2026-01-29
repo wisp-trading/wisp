@@ -35,7 +35,7 @@ func (s *StrategyMetadata) ToTemplate() map[string]interface{} {
 // FetchAvailableStrategies fetches strategy metadata from SDK examples
 func FetchAvailableStrategies() ([]StrategyMetadata, error) {
 	// Try local SDK directory first (for development/testing)
-	localSDKPath := "/Users/williamr/Documents/holdex/repos/kronos-sdk/examples"
+	localSDKPath := "/Users/williamr/Documents/holdex/repos/wisp-sdk/examples"
 	strategies, err := fetchFromLocal(localSDKPath)
 	if err == nil && len(strategies) > 0 {
 		return strategies, nil
@@ -98,7 +98,7 @@ func fetchFromLocal(basePath string) ([]StrategyMetadata, error) {
 // fetchFromGitHub fetches strategy metadata from GitHub repository
 func fetchFromGitHub() ([]StrategyMetadata, error) {
 	// GitHub raw content base URL
-	baseURL := "https://raw.githubusercontent.com/backtesting-org/kronos-sdk/main/examples"
+	baseURL := "https://raw.githubusercontent.com/github.com/wisp-trading/sdk/main/examples"
 
 	// List of example directories to check
 	exampleDirs := []string{

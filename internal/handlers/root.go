@@ -1,15 +1,15 @@
 package handlers
 
 import (
-	"github.com/backtesting-org/kronos-cli/internal/handlers/settings"
-	"github.com/backtesting-org/kronos-cli/internal/handlers/strategies"
-	backtesting "github.com/backtesting-org/kronos-cli/internal/handlers/strategies/backtest/types"
-	"github.com/backtesting-org/kronos-cli/internal/handlers/strategies/browse"
-	"github.com/backtesting-org/kronos-cli/internal/handlers/strategies/monitor"
-	"github.com/backtesting-org/kronos-cli/internal/router"
-	setup "github.com/backtesting-org/kronos-cli/internal/setup/types"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/spf13/cobra"
+	"github.com/wisp-trading/wisp/internal/handlers/settings"
+	"github.com/wisp-trading/wisp/internal/handlers/strategies"
+	backtesting "github.com/wisp-trading/wisp/internal/handlers/strategies/backtest/types"
+	"github.com/wisp-trading/wisp/internal/handlers/strategies/browse"
+	"github.com/wisp-trading/wisp/internal/handlers/strategies/monitor"
+	"github.com/wisp-trading/wisp/internal/router"
+	setup "github.com/wisp-trading/wisp/internal/setup/types"
 )
 
 type RootHandler interface {

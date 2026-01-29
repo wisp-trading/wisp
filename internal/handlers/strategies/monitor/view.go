@@ -1,8 +1,8 @@
 package monitor
 
 import (
-	"github.com/backtesting-org/kronos-sdk/pkg/types/monitoring"
 	tea "github.com/charmbracelet/bubbletea"
+	"github.com/wisp-trading/sdk/pkg/types/monitoring"
 )
 
 // MonitorViewFactory creates a new monitor view

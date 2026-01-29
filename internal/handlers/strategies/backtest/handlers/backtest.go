@@ -1,9 +1,9 @@
 package handlers
 
 import (
-	types2 "github.com/backtesting-org/kronos-cli/internal/handlers/strategies/backtest/types"
-	"github.com/backtesting-org/kronos-cli/pkg/strategy"
 	"github.com/spf13/cobra"
+	types2 "github.com/wisp-trading/wisp/internal/handlers/strategies/backtest/types"
+	"github.com/wisp-trading/wisp/pkg/strategy"
 )
 
 // backtestHandler handles the backtest command

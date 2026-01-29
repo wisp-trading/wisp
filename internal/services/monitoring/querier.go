@@ -10,10 +10,10 @@ import (
 	"path/filepath"
 	"time"
 
-	"github.com/backtesting-org/kronos-sdk/pkg/types/connector"
-	monitoring2 "github.com/backtesting-org/kronos-sdk/pkg/types/monitoring"
-	"github.com/backtesting-org/kronos-sdk/pkg/types/monitoring/health"
-	"github.com/backtesting-org/kronos-sdk/pkg/types/strategy"
+	"github.com/wisp-trading/sdk/pkg/types/connector"
+	monitoring2 "github.com/wisp-trading/sdk/pkg/types/monitoring"
+	"github.com/wisp-trading/sdk/pkg/types/monitoring/health"
+	"github.com/wisp-trading/sdk/pkg/types/strategy"
 )
 
 // querier implements ViewQuerier - queries running strategy instances via Unix socket
@@ -26,7 +26,7 @@ type querier struct {
 func NewQuerier() monitoring2.ViewQuerier {
 	homeDir, _ := os.UserHomeDir()
 	return &querier{
-		socketDir: filepath.Join(homeDir, ".kronos", "sockets"),
+		socketDir: filepath.Join(homeDir, ".wisp", "sockets"),
 		timeout:   5 * time.Second,
 	}
 }

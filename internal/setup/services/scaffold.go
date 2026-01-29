@@ -6,9 +6,9 @@ import (
 	"os/exec"
 	"path/filepath"
 
-	"github.com/backtesting-org/kronos-cli/internal/setup/types"
 	"github.com/fatih/color"
 	"github.com/spf13/afero"
+	"github.com/wisp-trading/wisp/internal/setup/types"
 )
 
 // scaffoldService handles project creation and scaffolding
@@ -34,7 +34,7 @@ func (s *scaffolder) CreateProject(name string) error {
 
 func (s *scaffolder) CreateProjectWithStrategy(name, strategyExample string) error {
 	green := color.New(color.FgGreen, color.Bold)
-	fmt.Printf("🚀 Creating Kronos project: %s\n\n", green.Sprint(name))
+	fmt.Printf("🚀 Creating Wisp project: %s\n\n", green.Sprint(name))
 
 	// Check if exists
 	if exists, _ := afero.DirExists(s.fs, name); exists {
@@ -61,7 +61,7 @@ func (s *scaffolder) generateFiles(name, strategyExample string, data ProjectDat
 	fmt.Printf("  📦 Downloading %s example from GitHub...\n", strategyExample)
 
 	cmd := exec.Command("git", "clone", "--depth", "1", "--filter=blob:none", "--sparse",
-		"https://github.com/backtesting-org/kronos-sdk.git", name)
+		"https://github.com/wisp-trading/sdk.git", name)
 	if err := cmd.Run(); err != nil {
 		return fmt.Errorf("failed to clone SDK: %w", err)
 	}
@@ -131,7 +131,7 @@ func (s *scaffolder) generateRootFiles(name, strategyExample string, data Projec
 
 go 1.23
 
-require github.com/backtesting-org/kronos-sdk v0.0.0
+require github.com/wisp-trading/sdk v0.0.0
 `, data.ModulePath)
 
 	goModPath := filepath.Join(name, "go.mod")
@@ -143,7 +143,7 @@ require github.com/backtesting-org/kronos-sdk v0.0.0
 	// Generate README.md
 	readmeContent := fmt.Sprintf(`# %s
 
-A Kronos trading strategy project using the %s strategy.
+A Wisp trading strategy project using the %s strategy.
 
 ## Setup
 
@@ -158,7 +158,7 @@ A Kronos trading strategy project using the %s strategy.
 
 ## Documentation
 
-For more information, visit: https://github.com/backtesting-org/kronos-sdk
+For more information, visit: https://github.com/wisp-trading/sdk
 `, name, strategyExample, strategyExample, strategyExample)
 
 	readmePath := filepath.Join(name, "README.md")

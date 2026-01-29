@@ -4,10 +4,10 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/backtesting-org/kronos-cli/internal/handlers/strategies/monitor/tabs"
-	"github.com/backtesting-org/kronos-cli/internal/ui"
-	"github.com/backtesting-org/kronos-sdk/pkg/types/monitoring"
 	tea "github.com/charmbracelet/bubbletea"
+	"github.com/wisp-trading/sdk/pkg/types/monitoring"
+	"github.com/wisp-trading/wisp/internal/handlers/strategies/monitor/tabs"
+	"github.com/wisp-trading/wisp/internal/ui"
 )
 
 // Tab represents a detail view tab

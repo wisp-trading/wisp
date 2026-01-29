@@ -4,9 +4,9 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/backtesting-org/kronos-cli/internal/setup/services"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
+	"github.com/wisp-trading/wisp/internal/setup/services"
 )
 
 // Screen types for init flow

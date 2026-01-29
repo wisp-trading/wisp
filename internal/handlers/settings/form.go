@@ -4,14 +4,14 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/backtesting-org/kronos-cli/internal/router"
-	"github.com/backtesting-org/kronos-cli/internal/ui"
-	"github.com/backtesting-org/kronos-sdk/pkg/types/config"
-	"github.com/backtesting-org/live-trading/pkg/connectors/types"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/huh"
 	"github.com/charmbracelet/lipgloss"
 	"github.com/donderom/bubblon"
+	"github.com/wisp-trading/connectors/pkg/connectors/types"
+	"github.com/wisp-trading/sdk/pkg/types/config"
+	"github.com/wisp-trading/wisp/internal/router"
+	"github.com/wisp-trading/wisp/internal/ui"
 )
 
 // ConnectorFormModel represents the connector detail/edit view

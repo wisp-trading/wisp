@@ -3,8 +3,8 @@ package manager
 import (
 	"context"
 
-	"github.com/backtesting-org/kronos-cli/pkg/live"
-	"github.com/backtesting-org/kronos-sdk/pkg/types/logging"
+	"github.com/wisp-trading/sdk/pkg/types/logging"
+	"github.com/wisp-trading/wisp/pkg/live"
 	"go.uber.org/fx"
 )
 

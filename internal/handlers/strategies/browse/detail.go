@@ -1,12 +1,12 @@
 package browse
 
 import (
-	"github.com/backtesting-org/kronos-cli/internal/handlers/strategies/compile"
-	"github.com/backtesting-org/kronos-cli/internal/handlers/strategies/live"
-	"github.com/backtesting-org/kronos-cli/internal/ui"
-	"github.com/backtesting-org/kronos-sdk/pkg/types/config"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/donderom/bubblon"
+	"github.com/wisp-trading/sdk/pkg/types/config"
+	"github.com/wisp-trading/wisp/internal/handlers/strategies/compile"
+	"github.com/wisp-trading/wisp/internal/handlers/strategies/live"
+	"github.com/wisp-trading/wisp/internal/ui"
 )
 
 type ActionType int

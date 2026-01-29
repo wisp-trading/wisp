@@ -1,8 +1,8 @@
 package cmd
 
 import (
-	setup "github.com/backtesting-org/kronos-cli/internal/setup/types"
 	"github.com/spf13/cobra"
+	setup "github.com/wisp-trading/wisp/internal/setup/types"
 	"go.uber.org/fx"
 )
 
@@ -16,7 +16,7 @@ func NewInitCommand(handler setup.InitHandler) InitCommandResult {
 	return InitCommandResult{
 		InitCommand: &cobra.Command{
 			Use:   "init <name>",
-			Short: "Create a new Kronos project",
+			Short: "Create a new Wisp project",
 			RunE:  handler.Handle,
 		},
 	}

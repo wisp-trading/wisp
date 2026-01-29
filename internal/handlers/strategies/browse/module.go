@@ -1,11 +1,11 @@
 package browse
 
 import (
-	"github.com/backtesting-org/kronos-cli/internal/handlers/strategies/compile"
-	"github.com/backtesting-org/kronos-cli/internal/handlers/strategies/live"
-	strategyTypes "github.com/backtesting-org/kronos-cli/pkg/strategy"
-	"github.com/backtesting-org/kronos-sdk/pkg/types/config"
 	tea "github.com/charmbracelet/bubbletea"
+	"github.com/wisp-trading/sdk/pkg/types/config"
+	"github.com/wisp-trading/wisp/internal/handlers/strategies/compile"
+	"github.com/wisp-trading/wisp/internal/handlers/strategies/live"
+	strategyTypes "github.com/wisp-trading/wisp/pkg/strategy"
 	"go.uber.org/fx"
 )
 

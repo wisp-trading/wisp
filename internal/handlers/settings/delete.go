@@ -3,10 +3,10 @@ package settings
 import (
 	"fmt"
 
-	"github.com/backtesting-org/kronos-cli/internal/router"
-	"github.com/backtesting-org/kronos-sdk/pkg/types/config"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/huh"
+	"github.com/wisp-trading/sdk/pkg/types/config"
+	"github.com/wisp-trading/wisp/internal/router"
 )
 
 // DeleteConfirmModel represents the delete confirmation view using Huh

@@ -4,13 +4,13 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/backtesting-org/kronos-cli/internal/router"
-	"github.com/backtesting-org/kronos-cli/internal/services/live"
-	"github.com/backtesting-org/kronos-cli/internal/ui"
-	"github.com/backtesting-org/kronos-sdk/pkg/types/config"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 	"github.com/donderom/bubblon"
+	"github.com/wisp-trading/sdk/pkg/types/config"
+	"github.com/wisp-trading/wisp/internal/router"
+	"github.com/wisp-trading/wisp/internal/services/live"
+	"github.com/wisp-trading/wisp/internal/ui"
 )
 
 type LiveViewFactory func(*config.Strategy) tea.Model
@@ -139,7 +139,7 @@ func (m *liveModel) View() string {
 			Foreground(ui.ColorMuted).
 			Render(
 				"• Trading instance spawned as separate process\n" +
-					fmt.Sprintf("• Logs: .kronos/instances/%s/stdout.log\n", m.strategy.Name) +
+					fmt.Sprintf("• Logs: .wisp/instances/%s/stdout.log\n", m.strategy.Name) +
 					"• Use 'Monitor' view to check status and metrics\n" +
 					"• Instance will continue running after CLI exits",
 			)

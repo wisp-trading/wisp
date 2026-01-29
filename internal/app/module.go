@@ -1,13 +1,13 @@
 package app
 
 import (
-	"github.com/backtesting-org/kronos-cli/internal/handlers"
-	"github.com/backtesting-org/kronos-cli/internal/handlers/strategies"
-	"github.com/backtesting-org/kronos-cli/internal/handlers/strategies/backtest"
-	"github.com/backtesting-org/kronos-cli/internal/handlers/strategies/live"
-	"github.com/backtesting-org/kronos-cli/internal/router"
-	"github.com/backtesting-org/kronos-cli/internal/services/compile"
-	"github.com/backtesting-org/kronos-cli/internal/setup"
+	"github.com/wisp-trading/wisp/internal/handlers"
+	"github.com/wisp-trading/wisp/internal/handlers/strategies"
+	"github.com/wisp-trading/wisp/internal/handlers/strategies/backtest"
+	"github.com/wisp-trading/wisp/internal/handlers/strategies/live"
+	"github.com/wisp-trading/wisp/internal/router"
+	"github.com/wisp-trading/wisp/internal/services/compile"
+	"github.com/wisp-trading/wisp/internal/setup"
 	"go.uber.org/fx"
 )
 

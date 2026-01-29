@@ -4,8 +4,8 @@ import (
 	"context"
 	"log"
 
-	"github.com/backtesting-org/kronos-cli/cmd"
-	"github.com/backtesting-org/kronos-cli/internal/app"
+	"github.com/wisp-trading/wisp/cmd"
+	"github.com/wisp-trading/wisp/internal/app"
 	"go.uber.org/fx"
 )
 

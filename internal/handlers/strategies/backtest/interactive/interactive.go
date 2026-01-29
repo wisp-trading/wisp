@@ -1,7 +1,7 @@
 package interactive
 
 // InteractiveMode guides the user through configuration interactively
-//func InteractiveMode() (*kronos.Kronos, error) {
+//func InteractiveMode() (*wisp.Wisp, error) {
 //	ui.ShowBanner()
 //	ui.Success("Interactive Backtest Mode")
 //	pterm.Println()
@@ -81,7 +81,7 @@ package interactive
 //}
 //
 //// showConfigPreview displays a preview of the configuration
-//func showConfigPreview(cfg *kronos.Kronos) {
+//func showConfigPreview(cfg *wisp.Wisp) {
 //	pterm.DefaultBox.WithTitle("Configuration Preview").WithTitleTopCenter().Println(
 //		fmt.Sprintf("Strategy:    %s\n", pterm.Cyan(cfg.Backtest.Strategy)) +
 //			fmt.Sprintf("Exchange:    %s\n", pterm.Cyan(cfg.Backtest.Exchange)) +

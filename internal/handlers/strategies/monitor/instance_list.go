@@ -5,11 +5,11 @@ import (
 	"strings"
 	"time"
 
-	"github.com/backtesting-org/kronos-cli/internal/ui"
-	"github.com/backtesting-org/kronos-sdk/pkg/types/monitoring"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 	"github.com/donderom/bubblon"
+	"github.com/wisp-trading/sdk/pkg/types/monitoring"
+	"github.com/wisp-trading/wisp/internal/ui"
 )
 
 // InstanceInfo holds display data for a running instance

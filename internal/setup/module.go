@@ -1,8 +1,8 @@
 package setup
 
 import (
-	"github.com/backtesting-org/kronos-cli/internal/setup/handlers"
-	"github.com/backtesting-org/kronos-cli/internal/setup/services"
+	"github.com/wisp-trading/wisp/internal/setup/handlers"
+	"github.com/wisp-trading/wisp/internal/setup/services"
 	"go.uber.org/fx"
 )
 

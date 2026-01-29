@@ -3,11 +3,11 @@ package browse
 import (
 	"fmt"
 
-	"github.com/backtesting-org/kronos-cli/internal/ui"
-	strategyTypes "github.com/backtesting-org/kronos-cli/pkg/strategy"
-	"github.com/backtesting-org/kronos-sdk/pkg/types/config"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/donderom/bubblon"
+	"github.com/wisp-trading/sdk/pkg/types/config"
+	"github.com/wisp-trading/wisp/internal/ui"
+	strategyTypes "github.com/wisp-trading/wisp/pkg/strategy"
 )
 
 type StrategyListView interface {

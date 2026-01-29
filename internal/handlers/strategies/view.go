@@ -1,10 +1,10 @@
 package strategies
 
 import (
-	"github.com/backtesting-org/kronos-cli/internal/handlers/strategies/browse"
-	"github.com/backtesting-org/kronos-cli/internal/router"
-	strategyTypes "github.com/backtesting-org/kronos-cli/pkg/strategy"
-	"github.com/backtesting-org/kronos-sdk/pkg/types/config"
+	"github.com/wisp-trading/sdk/pkg/types/config"
+	"github.com/wisp-trading/wisp/internal/handlers/strategies/browse"
+	"github.com/wisp-trading/wisp/internal/router"
+	strategyTypes "github.com/wisp-trading/wisp/pkg/strategy"
 )
 
 // StrategyBrowser handles browsing strategies and selecting actions

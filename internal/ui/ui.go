@@ -9,9 +9,9 @@ import (
 	"github.com/schollz/progressbar/v3"
 )
 
-// ShowBanner displays the ASCII art "KRONOS" banner
+// ShowBanner displays the ASCII art "WISP" banner
 func ShowBanner() {
-	myFigure := figure.NewFigure("KRONOS", "big", true)
+	myFigure := figure.NewFigure("WISP", "big", true)
 	pterm.DefaultCenter.Println(pterm.Cyan(myFigure.String()))
 	fmt.Println()
 }
@@ -166,7 +166,7 @@ func DisplayError(title, reason string, fixes []string) {
 		pterm.Println()
 	}
 
-	pterm.Printf("Documentation: %s\n", pterm.Blue("https://kronos.io/docs/config"))
+	pterm.Printf("Documentation: %s\n", pterm.Blue("https://wisp.io/docs/config"))
 }
 
 // ShowNextSteps displays next steps after init

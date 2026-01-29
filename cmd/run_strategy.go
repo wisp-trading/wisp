@@ -7,8 +7,8 @@ import (
 	"path/filepath"
 	"syscall"
 
-	"github.com/backtesting-org/kronos-cli/pkg/live"
 	"github.com/spf13/cobra"
+	"github.com/wisp-trading/wisp/pkg/live"
 )
 
 type RunStrategyCommand struct {

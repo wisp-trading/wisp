@@ -1,11 +1,11 @@
 package handlers
 
 import (
-	"github.com/backtesting-org/kronos-cli/internal/router"
-	handlers2 "github.com/backtesting-org/kronos-cli/internal/setup/handlers"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 	"github.com/spf13/cobra"
+	"github.com/wisp-trading/wisp/internal/router"
+	handlers2 "github.com/wisp-trading/wisp/internal/setup/handlers"
 )
 
 // mainMenuModel represents the main menu TUI
@@ -84,7 +84,7 @@ func (m mainMenuModel) View() string {
 		Foreground(lipgloss.Color("#6B7280")).
 		Italic(true)
 
-	title := titleStyle.Render("KRONOS CLI v0.1.0")
+	title := titleStyle.Render("WISP CLI v0.1.0")
 
 	var s string
 	s += "\n" + title + "\n\n"

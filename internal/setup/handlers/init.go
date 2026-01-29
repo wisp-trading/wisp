@@ -1,8 +1,8 @@
 package handlers
 
 import (
-	"github.com/backtesting-org/kronos-cli/internal/setup/types"
 	"github.com/spf13/cobra"
+	"github.com/wisp-trading/wisp/internal/setup/types"
 )
 
 // InitHandler handles the init command

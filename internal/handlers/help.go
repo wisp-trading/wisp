@@ -61,19 +61,19 @@ func (m helpModel) View() string {
 
 	// Build content as lines for scrolling
 	lines := []string{}
-	lines = append(lines, titleStyle.Render("🚀 KRONOS CLI v0.1.0"))
+	lines = append(lines, titleStyle.Render("🚀 WISP CLI v0.1.0"))
 	lines = append(lines, mutedStyle.Render("Trading infrastructure platform"))
 	lines = append(lines, "")
 	lines = append(lines, sectionStyle.Render("📋 COMMANDS"))
 	lines = append(lines, "")
 
 	commands := []struct{ cmd, desc string }{
-		{"kronos", "Launch interactive menu"},
-		{"kronos init <name>", "Create a new trading project"},
-		{"kronos backtest", "Run backtests interactively"},
-		{"kronos live", "Deploy strategies to live trading"},
-		{"kronos analyze", "Analyze backtest results"},
-		{"kronos version", "Show version information"},
+		{"wisp", "Launch interactive menu"},
+		{"wisp init <name>", "Create a new trading project"},
+		{"wisp backtest", "Run backtests interactively"},
+		{"wisp live", "Deploy strategies to live trading"},
+		{"wisp analyze", "Analyze backtest results"},
+		{"wisp version", "Show version information"},
 	}
 
 	for _, c := range commands {

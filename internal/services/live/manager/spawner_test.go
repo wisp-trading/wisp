@@ -7,13 +7,13 @@ import (
 	"strings"
 	"time"
 
-	"github.com/backtesting-org/kronos-sdk/pkg/types/config"
-	"github.com/backtesting-org/kronos-sdk/pkg/types/logging"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	"github.com/wisp-trading/sdk/pkg/types/config"
+	"github.com/wisp-trading/sdk/pkg/types/logging"
 
-	"github.com/backtesting-org/kronos-cli/internal/services/live/manager"
-	"github.com/backtesting-org/kronos-cli/pkg/live"
+	"github.com/wisp-trading/wisp/internal/services/live/manager"
+	"github.com/wisp-trading/wisp/pkg/live"
 )
 
 var _ = Describe("ProcessSpawner", func() {
@@ -63,9 +63,9 @@ var _ = Describe("ProcessSpawner", func() {
 			Expect(cmd).NotTo(BeNil())
 
 			// Verify command path and args
-			Expect(cmd.Path).To(ContainSubstring("kronos"))
+			Expect(cmd.Path).To(ContainSubstring("wisp"))
 			Expect(cmd.Args).To(ContainElements(
-				ContainSubstring("kronos"),
+				ContainSubstring("wisp"),
 				"run-strategy",
 				"--strategy",
 				"test-momentum",
@@ -86,7 +86,7 @@ var _ = Describe("ProcessSpawner", func() {
 			Expect(err).NotTo(HaveOccurred())
 
 			// Verify directory was created
-			logDir := filepath.Join(".kronos", "instances", "test-momentum")
+			logDir := filepath.Join(".wisp", "instances", "test-momentum")
 			_, err = os.Stat(logDir)
 			Expect(err).NotTo(HaveOccurred())
 		})
@@ -97,8 +97,8 @@ var _ = Describe("ProcessSpawner", func() {
 			Expect(cmd).NotTo(BeNil())
 
 			// Verify log files exist
-			stdoutLog := filepath.Join(".kronos", "instances", "test-momentum", "stdout.log")
-			stderrLog := filepath.Join(".kronos", "instances", "test-momentum", "stderr.log")
+			stdoutLog := filepath.Join(".wisp", "instances", "test-momentum", "stdout.log")
+			stderrLog := filepath.Join(".wisp", "instances", "test-momentum", "stderr.log")
 
 			// Files should be created
 			Eventually(func() bool {
@@ -142,8 +142,8 @@ var _ = Describe("ProcessSpawner", func() {
 			Expect(err).NotTo(HaveOccurred())
 
 			// Verify both directories exist
-			dir1 := filepath.Join(".kronos", "instances", "momentum-1")
-			dir2 := filepath.Join(".kronos", "instances", "momentum-2")
+			dir1 := filepath.Join(".wisp", "instances", "momentum-1")
+			dir2 := filepath.Join(".wisp", "instances", "momentum-2")
 
 			_, err = os.Stat(dir1)
 			Expect(err).NotTo(HaveOccurred())
@@ -158,7 +158,7 @@ var _ = Describe("ProcessSpawner", func() {
 			Expect(err).NotTo(HaveOccurred())
 			Expect(cmd1).NotTo(BeNil())
 
-			logPath := filepath.Join(".kronos", "instances", "test-momentum", "stdout.log")
+			logPath := filepath.Join(".wisp", "instances", "test-momentum", "stdout.log")
 
 			// Write some content
 			err = os.WriteFile(logPath, []byte("first line\n"), 0644)
@@ -177,13 +177,13 @@ var _ = Describe("ProcessSpawner", func() {
 
 		Context("when directory creation fails", func() {
 			It("should return error for invalid path", func() {
-				// Make .kronos directory read-only
-				kronosDir := ".kronos"
-				_ = os.MkdirAll(kronosDir, 0755)
-				_ = os.Chmod(kronosDir, 0444) // Read-only
+				// Make .wisp directory read-only
+				wispDir := ".wisp"
+				_ = os.MkdirAll(wispDir, 0755)
+				_ = os.Chmod(wispDir, 0444) // Read-only
 
 				DeferCleanup(func() {
-					_ = os.Chmod(kronosDir, 0755)
+					_ = os.Chmod(wispDir, 0755)
 				})
 
 				_, err := spawner.Spawn(ctx, testStrategy)
@@ -204,7 +204,7 @@ var _ = Describe("ProcessSpawner", func() {
 				Expect(cmd).NotTo(BeNil())
 
 				// Verify directory created with safe name
-				logDir := filepath.Join(".kronos", "instances", "test-strategy-v1.2.3")
+				logDir := filepath.Join(".wisp", "instances", "test-strategy-v1.2.3")
 				_, err = os.Stat(logDir)
 				Expect(err).NotTo(HaveOccurred())
 			})
@@ -271,7 +271,7 @@ var _ = Describe("ProcessSpawner", func() {
 			_, err := spawner.Spawn(ctx, testStrategy)
 			Expect(err).NotTo(HaveOccurred())
 
-			logPath := filepath.Join(".kronos", "instances", "test-momentum", "stdout.log")
+			logPath := filepath.Join(".wisp", "instances", "test-momentum", "stdout.log")
 			info, err := os.Stat(logPath)
 			Expect(err).NotTo(HaveOccurred())
 

@@ -6,7 +6,7 @@ import (
 	"os/exec"
 	"path/filepath"
 
-	"github.com/backtesting-org/kronos-cli/pkg/strategy"
+	"github.com/wisp-trading/wisp/pkg/strategy"
 )
 
 // compileService handles compilation of strategies into .so plugins

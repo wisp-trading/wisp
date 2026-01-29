@@ -6,10 +6,10 @@ import (
 	"os/signal"
 	"syscall"
 
-	"github.com/backtesting-org/kronos-cli/pkg/live"
-	"github.com/backtesting-org/kronos-sdk/pkg/types/config"
-	"github.com/backtesting-org/kronos-sdk/pkg/types/logging"
-	"github.com/backtesting-org/kronos-sdk/pkg/types/runtime"
+	"github.com/wisp-trading/sdk/pkg/types/config"
+	"github.com/wisp-trading/sdk/pkg/types/logging"
+	"github.com/wisp-trading/sdk/pkg/types/runtime"
+	"github.com/wisp-trading/wisp/pkg/live"
 )
 
 type liveRuntime struct {
@@ -31,15 +31,15 @@ func NewRuntime(
 }
 
 func (r *liveRuntime) Run(strategyDir string) error {
-	kronosPath := "kronos.yml"
-	cfg, err := r.configLoader.LoadForStrategy(strategyDir, kronosPath)
+	wispPath := "wisp.yml"
+	cfg, err := r.configLoader.LoadForStrategy(strategyDir, wispPath)
 	if err != nil {
 		return fmt.Errorf("failed to load config: %w", err)
 	}
 
 	r.logger.Info("Config loaded", "strategy", cfg.Strategy.Name)
 
-	err = r.runtime.Start(strategyDir, kronosPath)
+	err = r.runtime.Start(strategyDir, wispPath)
 	if err != nil {
 		return fmt.Errorf("failed to start: %w", err)
 	}

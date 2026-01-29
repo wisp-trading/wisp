@@ -1,7 +1,7 @@
 package monitoring
 
 import (
-	"github.com/backtesting-org/kronos-sdk/pkg/types/monitoring"
+	"github.com/wisp-trading/sdk/pkg/types/monitoring"
 	"go.uber.org/fx"
 )
 

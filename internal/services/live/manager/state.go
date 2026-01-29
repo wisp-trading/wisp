@@ -8,7 +8,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/backtesting-org/kronos-cli/pkg/live"
+	"github.com/wisp-trading/wisp/pkg/live"
 )
 
 type fileStateStore struct {
@@ -16,19 +16,19 @@ type fileStateStore struct {
 	path string
 }
 
-// NewFileStateStore creates a new file-based state store at ~/.kronos/.instances.json
+// NewFileStateStore creates a new file-based state store at ~/.wisp/.instances.json
 func NewFileStateStore() (live.StateStore, error) {
 	homeDir, err := os.UserHomeDir()
 	if err != nil {
 		return nil, fmt.Errorf("failed to get home directory: %w", err)
 	}
 
-	kronosDir := filepath.Join(homeDir, ".kronos")
-	if err := os.MkdirAll(kronosDir, 0755); err != nil {
-		return nil, fmt.Errorf("failed to create kronos directory: %w", err)
+	wispDir := filepath.Join(homeDir, ".wisp")
+	if err := os.MkdirAll(wispDir, 0755); err != nil {
+		return nil, fmt.Errorf("failed to create wisp directory: %w", err)
 	}
 
-	stateFile := filepath.Join(kronosDir, ".instances.json")
+	stateFile := filepath.Join(wispDir, ".instances.json")
 
 	return &fileStateStore{
 		path: stateFile,

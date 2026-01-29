@@ -1,8 +1,8 @@
 package cmd
 
 import (
-	"github.com/backtesting-org/kronos-cli/internal/handlers/strategies/live"
 	"github.com/spf13/cobra"
+	"github.com/wisp-trading/wisp/internal/handlers/strategies/live"
 	"go.uber.org/fx"
 )
 

@@ -1,8 +1,8 @@
 package handlers
 
 import (
-	"github.com/backtesting-org/kronos-cli/internal/handlers/strategies/backtest/types"
 	"github.com/spf13/cobra"
+	"github.com/wisp-trading/wisp/internal/handlers/strategies/backtest/types"
 )
 
 // analyzeHandler handles the analyze command

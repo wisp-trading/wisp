@@ -3,8 +3,8 @@ package tabs
 import (
 	"fmt"
 
-	"github.com/backtesting-org/kronos-cli/internal/ui"
 	"github.com/charmbracelet/lipgloss"
+	"github.com/wisp-trading/wisp/internal/ui"
 )
 
 // Shared styles for tab views

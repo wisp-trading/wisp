@@ -6,7 +6,7 @@ import (
 	"os/exec"
 	"time"
 
-	"github.com/backtesting-org/kronos-sdk/pkg/types/config"
+	"github.com/wisp-trading/sdk/pkg/types/config"
 )
 
 // InstanceStatus represents the current state of a strategy instance
@@ -68,7 +68,7 @@ type InstanceManager interface {
 
 // ProcessSpawner creates and configures child processes with proper isolation
 type ProcessSpawner interface {
-	// Spawn creates a new kronos run-strategy process
+	// Spawn creates a new wisp run-strategy process
 	Spawn(ctx context.Context, strategy *config.Strategy) (*exec.Cmd, error)
 
 	// AttachMonitor starts monitoring process for crashes

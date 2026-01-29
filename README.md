@@ -1,4 +1,4 @@
-# Kronos CLI
+# Wisp CLI
 
 <div align="center">
 
@@ -16,11 +16,11 @@
 
 ---
 
-## 🚀 What is Kronos?
+## 🚀 What is Wisp?
 
-Kronos is a **low-code algorithmic trading framework** that lets you write strategies in Go and deploy them to live markets with confidence. Built on a plugin architecture with hot-reload support, Kronos enables rapid strategy development and deployment.
+Wisp is a **low-code algorithmic trading framework** that lets you write strategies in Go and deploy them to live markets with confidence. Built on a plugin architecture with hot-reload support, Wisp enables rapid strategy development and deployment.
 
-### What Kronos Does For You
+### What Wisp Does For You
 
 ✅ **Plugin-Based Strategy System** - Write strategies as Go plugins, compile once, deploy anywhere  
 ✅ **Interactive TUI** - Beautiful terminal interface for managing strategies and monitoring live trades  
@@ -36,22 +36,22 @@ Kronos is a **low-code algorithmic trading framework** that lets you write strat
 ### Install via Go
 
 ```bash
-go install github.com/backtesting-org/kronos@latest
+go install github.com/github.com/wisp-trading/connectorsg/wisp@latest
 ```
 
 ### Build from Source
 
 ```bash
-git clone https://github.com/backtesting-org/kronos
-cd kronos
-go build -o kronos
-sudo mv kronos /usr/local/bin/
+git clone https://github.com/github.com/wisp-trading/connectorsorg/wisp
+cd wisp
+go build -o wisp
+sudo mv wisp /usr/local/bin/
 ```
 
 ### Verify Installation
 
 ```bash
-kronos version
+wisp version
 ```
 
 ---
@@ -62,7 +62,7 @@ kronos version
 
 ```bash
 mkdir my-trading-bot && cd my-trading-bot
-kronos
+wisp
 # Navigate to: 🆕 Create New Project
 ```
 
@@ -79,23 +79,23 @@ my-trading-bot/
 
 ### 2. Write Your Strategy
 
-Kronos strategies implement a simple interface:
+Wisp strategies implement a simple interface:
 
 ```go
 package main
 
 import (
-    "github.com/backtesting-org/kronos-sdk/pkg/types/kronos"
-    "github.com/backtesting-org/kronos-sdk/pkg/types/strategy"
+    "github.com/wisp-trading/sdk/pkg/types/wisp"
+    "github.com/wisp-trading/sdk/pkg/types/strategy"
 )
 
-func NewStrategy(k kronos.Kronos) strategy.Strategy {
+func NewStrategy(k wisp.Wisp) strategy.Strategy {
     return &myStrategy{k: k}
 }
 
 type myStrategy struct {
     strategy.BaseStrategy
-    k kronos.Kronos
+    k wisp.Wisp
 }
 
 func (s *myStrategy) GetSignals() ([]*strategy.Signal, error) {
@@ -149,16 +149,16 @@ parameters:
 ### 4. Compile Your Strategy
 
 ```bash
-kronos
+wisp
 # Navigate to: Strategies → momentum → Compile
 ```
 
-Kronos compiles your strategy into a `.so` plugin file with progress tracking.
+Wisp compiles your strategy into a `.so` plugin file with progress tracking.
 
 ### 5. Deploy to Live Trading
 
 ```bash
-kronos
+wisp
 # Navigate to: Strategies → momentum → Start Live
 ```
 
@@ -167,7 +167,7 @@ Your strategy runs as a detached process, continuing even after you close the CL
 ### 6. Monitor Live Strategies
 
 ```bash
-kronos
+wisp
 # Navigate to: Monitor
 ```
 
@@ -245,7 +245,7 @@ Graceful HTTP-based shutdown ensures clean process termination.
 
 ### Key Resources
 
-- [Introduction](https://documentation-chi-ecru.vercel.app/docs/intro#what-kronos-does-for-you) - Architecture overview
+- [Introduction](https://documentation-chi-ecru.vercel.app/docs/intro#what-wisp-does-for-you) - Architecture overview
 - [Strategy Development](https://documentation-chi-ecru.vercel.app/docs/strategies) - Writing strategies
 - [SDK Reference](https://documentation-chi-ecru.vercel.app/docs/sdk) - API documentation
 - [Exchange Configuration](https://documentation-chi-ecru.vercel.app/docs/exchanges) - Setting up exchanges
@@ -258,7 +258,7 @@ Graceful HTTP-based shutdown ensures clean process termination.
 ### Main Menu
 ```
 ╭─────────────────────────────────────────────╮
-│            KRONOS CLI v0.1.0                │
+│            WISP CLI v0.1.0                │
 │                                             │
 │  What would you like to do?                 │
 │                                             │
@@ -311,7 +311,7 @@ Graceful HTTP-based shutdown ensures clean process termination.
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
-│                      KRONOS CLI (TUI)                       │
+│                      WISP CLI (TUI)                       │
 │  • Strategy Browser  • Compiler  • Monitor  • Live Trading │
 └────────────────────┬────────────────────────────────────────┘
                      │
@@ -363,7 +363,7 @@ Graceful HTTP-based shutdown ensures clean process termination.
 ### Interactive Mode (Default)
 
 ```bash
-kronos
+wisp
 ```
 
 Launches the TUI interface with full navigation.
@@ -371,15 +371,15 @@ Launches the TUI interface with full navigation.
 ### CLI Mode
 
 ```bash
-kronos --cli          # Show command help
-kronos version        # Show version info
+wisp --cli          # Show command help
+wisp version        # Show version info
 ```
 
 ### Advanced Usage
 
 ```bash
 # Run specific strategy (internal use - called by Instance Manager)
-kronos run-strategy --strategy momentum
+wisp run-strategy --strategy momentum
 ```
 
 ---
@@ -449,8 +449,8 @@ We welcome contributions! Here's how you can help:
 
 ```bash
 # Clone the repo
-git clone https://github.com/backtesting-org/kronos-cli
-cd kronos-cli
+git clone https://github.com/wisp-trading/wisp
+cd wisp-cli
 
 # Install dependencies
 go mod download
@@ -459,7 +459,7 @@ go mod download
 go test ./...
 
 # Build
-go build -o kronos
+go build -o wisp
 ```
 
 ### Running Tests
@@ -523,7 +523,7 @@ ginkgo watch -r
 
 ## ❓ FAQ
 
-**Q: Is Kronos suitable for production trading?**  
+**Q: Is Wisp suitable for production trading?**  
 A: Yes, but use appropriate risk management. Start with small positions and paper trading.
 
 **Q: What exchanges are supported?**  
@@ -536,7 +536,7 @@ A: Yes! Each strategy runs in its own isolated process.
 A: Store them in `exchanges.yml` with proper file permissions (chmod 600).
 
 **Q: Can I write strategies in languages other than Go?**  
-A: Kronos strategies must be written in Go to compile as plugins. However, you can integrate machine learning models from any language using:
+A: Wisp strategies must be written in Go to compile as plugins. However, you can integrate machine learning models from any language using:
 - **gRPC** - Call ML inference services in Python, R, or any language
 - **ONNX Runtime** - Load pre-trained models directly in Go
 - **HTTP APIs** - Connect to external prediction services
@@ -567,17 +567,17 @@ ps aux | grep momentum
 kill -9 <PID>
 
 # Clean up socket files
-rm ~/.kronos/sockets/*.sock
+rm ~/.wisp/sockets/*.sock
 ```
 
 ### "Already Running" Error
 
 ```bash
 # Check for orphaned processes
-ps aux | grep kronos
+ps aux | grep wisp
 
 # Clean up state files
-rm ~/.kronos/instances/*/state.json
+rm ~/.wisp/instances/*/state.json
 ```
 
 ---
@@ -603,15 +603,15 @@ Built with:
 
 - 📖 [Documentation](https://documentation-chi-ecru.vercel.app/docs/intro)
 - 💬 [Discord Community](#) *(coming soon)*
-- 🐛 [Issue Tracker](https://github.com/backtesting-org/kronos-cli/issues)
+- 🐛 [Issue Tracker](https://github.com/wisp-trading/wisp/issues)
 - ✉️ [Email Support](#) *(for enterprise)*
 
 ---
 
 <div align="center">
 
-**⭐ If you find Kronos useful, please consider starring the repo! ⭐**
+**⭐ If you find Wisp useful, please consider starring the repo! ⭐**
 
-Made with ❤️ by the Kronos Team
+Made with ❤️ by the Wisp Team
 
 </div>

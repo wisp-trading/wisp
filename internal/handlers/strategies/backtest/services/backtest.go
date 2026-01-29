@@ -1,8 +1,8 @@
 package services
 
 import (
-	"github.com/backtesting-org/kronos-cli/internal/handlers/strategies/backtest/types"
-	"github.com/backtesting-org/kronos-sdk/pkg/types/config"
+	"github.com/wisp-trading/sdk/pkg/types/config"
+	"github.com/wisp-trading/wisp/internal/handlers/strategies/backtest/types"
 )
 
 // backtestService handles backtest operations

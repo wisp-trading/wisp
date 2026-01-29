@@ -1,19 +1,19 @@
 package live
 
 import (
-	"github.com/backtesting-org/kronos-cli/internal/services/live"
-	"github.com/backtesting-org/kronos-cli/internal/services/live/manager"
-	"github.com/backtesting-org/kronos-cli/internal/services/live/runtime"
-	"github.com/backtesting-org/kronos-cli/internal/services/monitoring"
-	"github.com/backtesting-org/kronos-sdk/kronos"
-	"github.com/backtesting-org/live-trading/pkg/connectors"
+	"github.com/wisp-trading/connectors/pkg/connectors"
+	"github.com/wisp-trading/sdk/wisp"
+	"github.com/wisp-trading/wisp/internal/services/live"
+	"github.com/wisp-trading/wisp/internal/services/live/manager"
+	"github.com/wisp-trading/wisp/internal/services/live/runtime"
+	"github.com/wisp-trading/wisp/internal/services/monitoring"
 	"go.uber.org/fx"
 )
 
 // Module provides all live trading dependencies including connectors registry and runtime
 var Module = fx.Module("live",
 	// Core SDK dependencies
-	kronos.Module,
+	wisp.Module,
 
 	// Live connectors
 	connectors.Module,

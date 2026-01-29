@@ -1,9 +1,9 @@
 package settings
 
 import (
-	"github.com/backtesting-org/kronos-cli/internal/router"
-	"github.com/backtesting-org/kronos-sdk/pkg/types/config"
 	tea "github.com/charmbracelet/bubbletea"
+	"github.com/wisp-trading/sdk/pkg/types/config"
+	"github.com/wisp-trading/wisp/internal/router"
 	"go.uber.org/fx"
 )
 
