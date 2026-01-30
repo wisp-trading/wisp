@@ -82,6 +82,7 @@ func NewRootHandler(
 }
 
 func (h *rootHandler) Handle(cmd *cobra.Command, args []string) error {
+
 	cliMode, _ := cmd.Flags().GetBool("cli")
 
 	if cliMode || len(args) > 0 {
