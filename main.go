@@ -6,10 +6,15 @@ import (
 
 	"github.com/wisp-trading/wisp/cmd"
 	"github.com/wisp-trading/wisp/internal/app"
+	"github.com/wisp-trading/wisp/internal/ui"
+	_ "github.com/wisp-trading/wisp/internal/ui/themes" // Register themes
 	"go.uber.org/fx"
 )
 
 func main() {
+	// Initialize theme system FIRST, before fx starts
+	initializeTheme()
+
 	fxApp := fx.New(
 		app.Module,
 		cmd.Module, // Use the command module
@@ -18,6 +23,15 @@ func main() {
 	)
 
 	fxApp.Run()
+}
+
+func initializeTheme() {
+	// Load user's theme preference from ~/.wisp/preferences.yml
+	// This happens once at startup, before any handlers run
+	if err := ui.LoadThemeFromPreferences(); err != nil {
+		// Silently fall back to default theme if preferences can't be loaded
+		_ = ui.SetTheme("default")
+	}
 }
 
 func runCLI(lc fx.Lifecycle, shutdowner fx.Shutdowner, root *cmd.RootCommand) {
