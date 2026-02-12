@@ -11,7 +11,7 @@ import (
 	"time"
 
 	"github.com/wisp-trading/sdk/pkg/types/connector"
-	monitoring2 "github.com/wisp-trading/sdk/pkg/types/monitoring"
+	"github.com/wisp-trading/sdk/pkg/types/monitoring"
 	"github.com/wisp-trading/sdk/pkg/types/monitoring/health"
 	"github.com/wisp-trading/sdk/pkg/types/strategy"
 )
@@ -23,7 +23,7 @@ type querier struct {
 }
 
 // NewQuerier creates a new ViewQuerier client
-func NewQuerier() monitoring2.ViewQuerier {
+func NewQuerier() monitoring.ViewQuerier {
 	homeDir, _ := os.UserHomeDir()
 	return &querier{
 		socketDir: filepath.Join(homeDir, ".wisp", "sockets"),
@@ -32,7 +32,7 @@ func NewQuerier() monitoring2.ViewQuerier {
 }
 
 // NewQuerierWithConfig creates a ViewQuerier with custom socket directory
-func NewQuerierWithConfig(socketDir string, timeout time.Duration) monitoring2.ViewQuerier {
+func NewQuerierWithConfig(socketDir string, timeout time.Duration) monitoring.ViewQuerier {
 	return &querier{
 		socketDir: socketDir,
 		timeout:   timeout,
@@ -88,8 +88,8 @@ func (q *querier) doRequest(instanceID, path string, result interface{}) error {
 }
 
 // QueryPnL retrieves PnL snapshot from a running instance
-func (q *querier) QueryPnL(instanceID string) (*monitoring2.PnLView, error) {
-	var result monitoring2.PnLView
+func (q *querier) QueryPnL(instanceID string) (*monitoring.PnLView, error) {
+	var result monitoring.PnLView
 	if err := q.doRequest(instanceID, "/api/pnl", &result); err != nil {
 		return nil, err
 	}
@@ -106,9 +106,9 @@ func (q *querier) QueryPositions(instanceID string) (*strategy.StrategyExecution
 }
 
 // QueryOrderbook retrieves orderbook for an asset/exchange from a running instance
-func (q *querier) QueryOrderbook(instanceID, asset, exchange string) (*connector.OrderBook, error) {
+func (q *querier) QueryOrderbook(instanceID, pair, exchange string) (*connector.OrderBook, error) {
 	var result connector.OrderBook
-	path := fmt.Sprintf("/api/orderbook?asset=%s&exchange=%s", asset, exchange)
+	path := fmt.Sprintf("/api/orderbook?pair=%s&exchange=%s", pair, exchange)
 	if err := q.doRequest(instanceID, path, &result); err != nil {
 		return nil, err
 	}
@@ -116,8 +116,8 @@ func (q *querier) QueryOrderbook(instanceID, asset, exchange string) (*connector
 }
 
 // QueryAvailableAssets retrieves the list of assets being traded
-func (q *querier) QueryAvailableAssets(instanceID string) ([]monitoring2.AssetExchange, error) {
-	var result []monitoring2.AssetExchange
+func (q *querier) QueryAvailableAssets(instanceID string) ([]monitoring.AssetExchange, error) {
+	var result []monitoring.AssetExchange
 	if err := q.doRequest(instanceID, "/api/assets", &result); err != nil {
 		return nil, err
 	}
@@ -135,8 +135,8 @@ func (q *querier) QueryRecentTrades(instanceID string, limit int) ([]connector.T
 }
 
 // QueryMetrics retrieves strategy metrics from a running instance
-func (q *querier) QueryMetrics(instanceID string) (*monitoring2.StrategyMetrics, error) {
-	var result monitoring2.StrategyMetrics
+func (q *querier) QueryMetrics(instanceID string) (*monitoring.StrategyMetrics, error) {
+	var result monitoring.StrategyMetrics
 	if err := q.doRequest(instanceID, "/api/metrics", &result); err != nil {
 		return nil, err
 	}
@@ -206,8 +206,8 @@ func (q *querier) ListInstances() ([]string, error) {
 }
 
 // QueryProfilingStats retrieves profiling statistics from a running instance
-func (q *querier) QueryProfilingStats(instanceID string) (*monitoring2.ProfilingStats, error) {
-	var result monitoring2.ProfilingStats
+func (q *querier) QueryProfilingStats(instanceID string) (*monitoring.ProfilingStats, error) {
+	var result monitoring.ProfilingStats
 	if err := q.doRequest(instanceID, "/profiling/stats", &result); err != nil {
 		return nil, err
 	}
@@ -215,8 +215,8 @@ func (q *querier) QueryProfilingStats(instanceID string) (*monitoring2.Profiling
 }
 
 // QueryRecentExecutions retrieves recent strategy executions with timing data
-func (q *querier) QueryRecentExecutions(instanceID string, limit int) ([]monitoring2.ProfilingMetrics, error) {
-	var result []monitoring2.ProfilingMetrics
+func (q *querier) QueryRecentExecutions(instanceID string, limit int) ([]monitoring.ProfilingMetrics, error) {
+	var result []monitoring.ProfilingMetrics
 	path := fmt.Sprintf("/profiling/executions?limit=%d", limit)
 	if err := q.doRequest(instanceID, path, &result); err != nil {
 		return nil, err

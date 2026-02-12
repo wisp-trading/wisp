@@ -17,8 +17,8 @@ require (
 	github.com/spf13/afero v1.15.0
 	github.com/spf13/cobra v1.10.1
 	github.com/stretchr/testify v1.11.1
-	github.com/wisp-trading/connectors v0.0.1
-	github.com/wisp-trading/sdk v0.0.8
+	github.com/wisp-trading/connectors v0.0.2-0.20260209091108-4aca620e4a89
+	github.com/wisp-trading/sdk v0.0.9-0.20260209075308-e40741174c91
 	go.uber.org/fx v1.24.0
 	gopkg.in/yaml.v3 v3.0.1
 )
