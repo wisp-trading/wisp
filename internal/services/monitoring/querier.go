@@ -115,13 +115,23 @@ func (q *querier) QueryOrderbook(instanceID, pair, exchange string) (*connector.
 	return &result, nil
 }
 
-// QueryAvailableAssets retrieves the list of assets being traded
-func (q *querier) QueryAvailableAssets(instanceID string) ([]monitoring.AssetExchange, error) {
-	var result []monitoring.AssetExchange
-	if err := q.doRequest(instanceID, "/api/assets", &result); err != nil {
+// QueryMarkets retrieves the full live market tree, grouped by market type
+func (q *querier) QueryMarkets(instanceID string) (*monitoring.MarketViews, error) {
+	var result monitoring.MarketViews
+	if err := q.doRequest(instanceID, "/api/markets", &result); err != nil {
 		return nil, err
 	}
-	return result, nil
+	return &result, nil
+}
+
+// QueryPredictionOrderbook retrieves prediction market orderbook for a specific outcome
+func (q *querier) QueryPredictionOrderbook(instanceID, exchange, marketID, outcomeID string) (*connector.OrderBook, error) {
+	var result connector.OrderBook
+	path := fmt.Sprintf("/api/orderbook/prediction?exchange=%s&market_id=%s&outcome_id=%s", exchange, marketID, outcomeID)
+	if err := q.doRequest(instanceID, path, &result); err != nil {
+		return nil, err
+	}
+	return &result, nil
 }
 
 // QueryRecentTrades retrieves recent trades from a running instance
