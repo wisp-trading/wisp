@@ -354,10 +354,10 @@ github.com/vmihailenco/msgpack/v5 v5.4.1 h1:cQriyiUvjTwOHg8QZaPihLWeRAAVoCpE00IU
 github.com/vmihailenco/msgpack/v5 v5.4.1/go.mod h1:GaZTsDaehaPpQVyxrf5mtQlH+pc21PIudVV/E3rRQok=
 github.com/vmihailenco/tagparser/v2 v2.0.0 h1:y09buUbR+b5aycVFQs/g70pqKVZNBmxwAhO7/IwNM9g=
 github.com/vmihailenco/tagparser/v2 v2.0.0/go.mod h1:Wri+At7QHww0WTrCBeu4J6bNtoV6mEfg5OIWRZA9qds=
-github.com/wisp-trading/connectors v0.0.1 h1:h89ERp8UWsQRdZQvCE6UzlaVDzwZxSTm1fLRj5oZfUs=
-github.com/wisp-trading/connectors v0.0.1/go.mod h1:BgRPGiCaUODb3O3H9yaXpMO7m4naX2kHhKXXUEyn1c4=
-github.com/wisp-trading/sdk v0.0.8 h1:83d/KDS8MxK+JkE/RXem2uAKPI4s/l5YT25uUVJU1LE=
-github.com/wisp-trading/sdk v0.0.8/go.mod h1:xGW/k69puJaj8uMmKPM8eoD+jbY7DWySCo972OZToWs=
+github.com/wisp-trading/connectors v0.0.2-0.20260209091108-4aca620e4a89 h1:IWSjjrwPZ7mFsnEHbb8UkQagW15fu5TxM6A9aFpT1Bk=
+github.com/wisp-trading/connectors v0.0.2-0.20260209091108-4aca620e4a89/go.mod h1:rDN7T25GSJM7xIszc9bS/lJlCUDzUKXvuVGCTsxgkxo=
+github.com/wisp-trading/sdk v0.0.9-0.20260209075308-e40741174c91 h1:JqBvCNDStF+6YTiDn/3wqRuoTwPA2oX231zY7WSEcxs=
+github.com/wisp-trading/sdk v0.0.9-0.20260209075308-e40741174c91/go.mod h1:xGW/k69puJaj8uMmKPM8eoD+jbY7DWySCo972OZToWs=
 github.com/xo/terminfo v0.0.0-20210125001918-ca9a967f8778/go.mod h1:2MuV+tbUrU1zIOPMxZ5EncGwgmMJsa+9ucAQZXxsObs=
 github.com/xo/terminfo v0.0.0-20220910002029-abceb7e1c41e h1:JVG44RsyaB9T2KIHavMF/ppJZNG9ZpyihvCd0w101no=
 github.com/xo/terminfo v0.0.0-20220910002029-abceb7e1c41e/go.mod h1:RbqR21r5mrJuqunuUZ/Dhy/avygyECGrLceyNeo4LiM=

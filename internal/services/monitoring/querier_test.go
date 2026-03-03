@@ -125,7 +125,10 @@ var _ = Describe("Querier", func() {
 				Expect(asset).To(Equal("BTC"))
 
 				orderbook := connector.OrderBook{
-					Asset: portfolio.NewAsset("BTC"),
+					Pair: portfolio.NewPair(
+						portfolio.NewAsset("BTC"),
+						portfolio.NewAsset("USD"),
+					),
 					Bids: []connector.PriceLevel{
 						{Price: numerical.NewFromFloat(50000), Quantity: numerical.NewFromFloat(1.5)},
 					},
