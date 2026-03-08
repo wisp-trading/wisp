@@ -115,7 +115,7 @@ func (m *PositionsModel) View() string {
 				sideStyle = lossStyle
 			}
 			row := fmt.Sprintf("  %-12s %s %-10.4f %-12.2f %-12s",
-				order.Symbol,
+				order.Pair.Symbol(),
 				sideStyle.Render(fmt.Sprintf("%-8s", order.Side)),
 				qty,
 				price,

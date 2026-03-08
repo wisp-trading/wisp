@@ -19,7 +19,7 @@ func main() {
 		app.Module,
 		cmd.Module, // Use the command module
 		fx.Invoke(runCLI),
-		//fx.NopLogger, // Suppress fx startup logs
+		fx.NopLogger, // Suppress fx startup logs
 	)
 
 	fxApp.Run()
