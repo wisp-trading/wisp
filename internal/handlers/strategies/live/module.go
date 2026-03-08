@@ -6,7 +6,6 @@ import (
 	"github.com/wisp-trading/wisp/internal/services/live"
 	"github.com/wisp-trading/wisp/internal/services/live/manager"
 	"github.com/wisp-trading/wisp/internal/services/live/runtime"
-	"github.com/wisp-trading/wisp/internal/services/monitoring"
 	"go.uber.org/fx"
 )
 
@@ -17,9 +16,6 @@ var Module = fx.Module("live",
 
 	// Live connectors
 	connectors.Module,
-
-	// Monitoring - ViewRegistry for exposing runtime data
-	monitoring.Module,
 
 	// Instance manager for multi-instance tracking and spawning
 	manager.Module,

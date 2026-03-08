@@ -7,6 +7,8 @@ import (
 
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
+	predictionConnector "github.com/wisp-trading/sdk/pkg/markets/prediction/types/connector"
+
 	"github.com/wisp-trading/sdk/pkg/types/connector"
 	"github.com/wisp-trading/sdk/pkg/types/monitoring"
 	"github.com/wisp-trading/wisp/internal/ui"
@@ -82,13 +84,16 @@ func (m *OrderbookViewModel) fetchData() tea.Cmd {
 
 		switch m.marketType {
 		case "spot", "perp":
-			orderbook, err = m.querier.QueryOrderbook(m.instanceID, m.item.pair, m.exchangeName)
+			orderbook, err = m.querier.QueryOrderbook(m.instanceID, m.exchangeName, m.item.pair)
 		case "prediction":
 			if len(m.item.outcomes) == 0 {
 				return orderbookViewDataMsg{err: fmt.Errorf("no outcomes available")}
 			}
 			outcome := m.item.outcomes[m.selectedOutcomeIndex]
-			orderbook, err = m.querier.QueryPredictionOrderbook(m.instanceID, m.exchangeName, m.item.marketID, outcome.OutcomeID)
+			marketId := predictionConnector.MarketIDFromString(m.item.marketID)
+			outcomeId := predictionConnector.OutcomeIDFromString(outcome.OutcomeID)
+
+			orderbook, err = m.querier.QueryPredictionOrderbook(m.instanceID, marketId, outcomeId)
 		}
 
 		return orderbookViewDataMsg{orderbook: orderbook, err: err}

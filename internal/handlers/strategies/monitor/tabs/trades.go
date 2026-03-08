@@ -121,7 +121,7 @@ func (m *TradesModel) View() string {
 
 		row := fmt.Sprintf("  %-10s %-12s %s %-10.4f %-12.2f %-10.4f",
 			timeStr,
-			trade.Symbol,
+			trade.Pair.Symbol(),
 			sideStyle.Render(fmt.Sprintf("%-8s", trade.Side)),
 			qty,
 			price,
