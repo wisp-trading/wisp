@@ -5,14 +5,18 @@ import (
 	"strings"
 
 	tea "github.com/charmbracelet/bubbletea"
+	predictionConnector "github.com/wisp-trading/sdk/pkg/markets/prediction/types/connector"
+	"github.com/wisp-trading/sdk/pkg/types/connector"
 	"github.com/wisp-trading/sdk/pkg/types/monitoring"
+	"github.com/wisp-trading/sdk/pkg/types/portfolio"
 	"github.com/wisp-trading/wisp/internal/ui"
 )
 
 // AssetListModel displays assets for selected exchange
 type AssetListModel struct {
-	exchangeName  string
-	marketType    string
+	source        string
+	exchangeName  connector.ExchangeName
+	marketType    connector.MarketType
 	marketViews   *monitoring.MarketViews
 	items         []assetItem
 	selectedIndex int
@@ -20,18 +24,20 @@ type AssetListModel struct {
 
 type assetItem struct {
 	displayName string
-	pair        string
-	marketID    string
+	pair        portfolio.Pair
+	marketID    predictionConnector.MarketID
 	slug        string
 	outcomes    []monitoring.PredictionOutcomeView
 }
 
 type selectAssetMsg struct {
-	item assetItem
+	source string
+	item   assetItem
 }
 
-func NewAssetListModel(exchangeName, marketType string, marketViews *monitoring.MarketViews) *AssetListModel {
+func NewAssetListModel(source string, exchangeName connector.ExchangeName, marketType connector.MarketType, marketViews *monitoring.MarketViews) *AssetListModel {
 	m := &AssetListModel{
+		source:        source,
 		exchangeName:  exchangeName,
 		marketType:    marketType,
 		marketViews:   marketViews,
@@ -59,13 +65,16 @@ func (m *AssetListModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			}
 		case "enter":
 			if len(m.items) > 0 {
+				source := m.source
+				item := m.items[m.selectedIndex]
 				return m, func() tea.Msg {
-					return selectAssetMsg{item: m.items[m.selectedIndex]}
+					return selectAssetMsg{source: source, item: item}
 				}
 			}
 		case "esc":
+			source := m.source
 			return m, func() tea.Msg {
-				return backToExchangeListMsg{}
+				return backToExchangeListMsg{source: source}
 			}
 		}
 	}
@@ -74,7 +83,7 @@ func (m *AssetListModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 func (m *AssetListModel) View() string {
 	var b strings.Builder
-	title := fmt.Sprintf("%s — %s", strings.ToUpper(m.exchangeName), m.marketType)
+	title := fmt.Sprintf("%s — %s", strings.ToUpper(m.exchangeName.String()), m.marketType)
 	b.WriteString(ui.SectionHeaderStyle.Render(title))
 	b.WriteString("\n\n")
 
@@ -102,25 +111,25 @@ func (m *AssetListModel) View() string {
 func (m *AssetListModel) buildAssetList() {
 	m.items = []assetItem{}
 	switch m.marketType {
-	case "spot":
+	case connector.MarketTypeSpot:
 		for _, spot := range m.marketViews.Spot {
 			if spot.Exchange == m.exchangeName {
 				m.items = append(m.items, assetItem{
-					displayName: spot.Pair,
+					displayName: spot.Pair.Symbol(),
 					pair:        spot.Pair,
 				})
 			}
 		}
-	case "perp":
+	case connector.MarketTypePerp:
 		for _, perp := range m.marketViews.Perp {
 			if perp.Exchange == m.exchangeName {
 				m.items = append(m.items, assetItem{
-					displayName: perp.Pair,
+					displayName: perp.Pair.Symbol(),
 					pair:        perp.Pair,
 				})
 			}
 		}
-	case "prediction":
+	case connector.MarketTypePrediction:
 		for _, pred := range m.marketViews.Prediction {
 			if pred.Exchange == m.exchangeName {
 				m.items = append(m.items, assetItem{

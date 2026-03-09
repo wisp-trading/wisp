@@ -7,8 +7,6 @@ import (
 
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
-	predictionConnector "github.com/wisp-trading/sdk/pkg/markets/prediction/types/connector"
-
 	"github.com/wisp-trading/sdk/pkg/types/connector"
 	"github.com/wisp-trading/sdk/pkg/types/monitoring"
 	"github.com/wisp-trading/wisp/internal/ui"
@@ -18,8 +16,8 @@ import (
 type OrderbookViewModel struct {
 	querier      monitoring.ViewQuerier
 	instanceID   string
-	exchangeName string
-	marketType   string
+	exchangeName connector.ExchangeName
+	marketType   connector.MarketType
 	item         assetItem
 
 	// Orderbook data
@@ -39,7 +37,13 @@ type OrderbookViewModel struct {
 	lastBestAsk float64
 }
 
-func NewOrderbookViewModel(querier monitoring.ViewQuerier, instanceID, exchangeName, marketType string, item assetItem) *OrderbookViewModel {
+func NewOrderbookViewModel(
+	querier monitoring.ViewQuerier,
+	instanceID string,
+	exchangeName connector.ExchangeName,
+	marketType connector.MarketType,
+	item assetItem,
+) *OrderbookViewModel {
 	return &OrderbookViewModel{
 		querier:              querier,
 		instanceID:           instanceID,
@@ -83,17 +87,15 @@ func (m *OrderbookViewModel) fetchData() tea.Cmd {
 		var err error
 
 		switch m.marketType {
-		case "spot", "perp":
+		case connector.MarketTypeSpot, connector.MarketTypePerp:
 			orderbook, err = m.querier.QueryOrderbook(m.instanceID, m.exchangeName, m.item.pair)
-		case "prediction":
+		case connector.MarketTypePrediction:
 			if len(m.item.outcomes) == 0 {
 				return orderbookViewDataMsg{err: fmt.Errorf("no outcomes available")}
 			}
 			outcome := m.item.outcomes[m.selectedOutcomeIndex]
-			marketId := predictionConnector.MarketIDFromString(m.item.marketID)
-			outcomeId := predictionConnector.OutcomeIDFromString(outcome.OutcomeID)
 
-			orderbook, err = m.querier.QueryPredictionOrderbook(m.instanceID, marketId, outcomeId)
+			orderbook, err = m.querier.QueryPredictionOrderbook(m.instanceID, m.item.marketID, outcome.OutcomeID)
 		}
 
 		return orderbookViewDataMsg{orderbook: orderbook, err: err}
@@ -169,7 +171,7 @@ func (m *OrderbookViewModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 		case "esc":
 			return m, func() tea.Msg {
-				return backToExchangeListMsg{}
+				return backToExchangeListMsg{source: "orderbook"}
 			}
 		}
 	}
@@ -236,9 +238,9 @@ func (m *OrderbookViewModel) renderHeader() string {
 	// Title with asset/market info
 	var title string
 	switch m.marketType {
-	case "spot", "perp":
+	case connector.MarketTypeSpot, connector.MarketTypePerp:
 		title = fmt.Sprintf("ORDERBOOK - %s @ %s", m.item.pair, m.exchangeName)
-	case "prediction":
+	case connector.MarketTypePrediction:
 		title = fmt.Sprintf("ORDERBOOK - %s", m.item.slug)
 	}
 	header.WriteString(ui.StrategyNameStyle.Render(title))

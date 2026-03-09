@@ -6,18 +6,18 @@ import (
 	"github.com/wisp-trading/sdk/pkg/types/monitoring"
 )
 
-// OrderbookModel is the coordinator for the three-level orderbook navigation
-type OrderbookModel struct {
+// KlinesModel is the coordinator for klines navigation: exchange → asset → chart
+type KlinesModel struct {
 	querier    monitoring.ViewQuerier
 	instanceID string
 
 	// Navigation state
-	currentView string // "exchange", "asset", or "orderbook"
+	currentView string // "exchange", "asset", or "klines"
 
 	// Sub-models
-	exchangeList  *ExchangeListModel
-	assetList     *AssetListModel
-	orderbookView *OrderbookViewModel
+	exchangeList *ExchangeListModel
+	assetList    *AssetListModel
+	klinesView   *KlinesViewModel
 
 	// State carried between views
 	selectedExchange   connector.ExchangeName
@@ -25,59 +25,57 @@ type OrderbookModel struct {
 	marketViews        *monitoring.MarketViews
 }
 
-// NewOrderbookModel creates a new orderbook coordinator
-func NewOrderbookModel(querier monitoring.ViewQuerier, instanceID string) *OrderbookModel {
-	return &OrderbookModel{
+// NewKlinesModel creates a new klines coordinator
+func NewKlinesModel(querier monitoring.ViewQuerier, instanceID string) *KlinesModel {
+	return &KlinesModel{
 		querier:      querier,
 		instanceID:   instanceID,
 		currentView:  "exchange",
-		exchangeList: NewExchangeListModel("orderbook", querier, instanceID),
+		exchangeList: NewExchangeListModel("klines", querier, instanceID),
 	}
 }
 
-func (m *OrderbookModel) Init() tea.Cmd {
+func (m *KlinesModel) Init() tea.Cmd {
 	return m.exchangeList.Init()
 }
 
-func (m *OrderbookModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
-	// Handle navigation messages — filter by source to avoid cross-tab contamination
+func (m *KlinesModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case selectExchangeMsg:
-		if msg.source != "orderbook" {
+		if msg.source != "klines" {
 			return m, nil
 		}
 		m.selectedExchange = msg.exchangeName
 		m.selectedMarketType = msg.marketType
 		m.marketViews = msg.marketViews
-		m.assetList = NewAssetListModel("orderbook", msg.exchangeName, msg.marketType, msg.marketViews)
+		m.assetList = NewAssetListModel("klines", msg.exchangeName, msg.marketType, msg.marketViews)
 		m.currentView = "asset"
 		return m, m.assetList.Init()
 
 	case selectAssetMsg:
-		if msg.source != "orderbook" {
+		if msg.source != "klines" {
 			return m, nil
 		}
-		m.orderbookView = NewOrderbookViewModel(
+		m.klinesView = NewKlinesViewModel(
 			m.querier,
 			m.instanceID,
 			m.selectedExchange,
-			m.selectedMarketType,
 			msg.item,
 		)
-		m.currentView = "orderbook"
-		return m, m.orderbookView.Init()
+		m.currentView = "klines"
+		return m, m.klinesView.Init()
 
 	case backToExchangeListMsg:
-		if msg.source != "orderbook" {
+		if msg.source != "klines" {
 			return m, nil
 		}
 		m.currentView = "exchange"
 		m.assetList = nil
-		m.orderbookView = nil
+		m.klinesView = nil
 		return m, m.exchangeList.fetchMarkets()
 	}
 
-	// Forward messages to active view
+	// Forward messages to active sub-model
 	var cmd tea.Cmd
 	switch m.currentView {
 	case "exchange":
@@ -88,16 +86,16 @@ func (m *OrderbookModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		if m.assetList != nil {
 			_, cmd = m.assetList.Update(msg)
 		}
-	case "orderbook":
-		if m.orderbookView != nil {
-			_, cmd = m.orderbookView.Update(msg)
+	case "klines":
+		if m.klinesView != nil {
+			_, cmd = m.klinesView.Update(msg)
 		}
 	}
 
 	return m, cmd
 }
 
-func (m *OrderbookModel) View() string {
+func (m *KlinesModel) View() string {
 	switch m.currentView {
 	case "exchange":
 		if m.exchangeList != nil {
@@ -107,9 +105,9 @@ func (m *OrderbookModel) View() string {
 		if m.assetList != nil {
 			return m.assetList.View()
 		}
-	case "orderbook":
-		if m.orderbookView != nil {
-			return m.orderbookView.View()
+	case "klines":
+		if m.klinesView != nil {
+			return m.klinesView.View()
 		}
 	}
 	return "Loading..."
