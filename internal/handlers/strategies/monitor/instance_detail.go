@@ -98,12 +98,20 @@ func (m *instanceDetailModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 		switch msg.String() {
 		case "left", "h":
+			if m.activeTab == TabKlines && m.klinesTab.IsChartView() {
+				_, cmd := m.klinesTab.Update(msg)
+				return m, cmd
+			}
 			if m.activeTab > 0 {
 				m.activeTab--
 			}
 			return m, nil
 
 		case "right", "l":
+			if m.activeTab == TabKlines && m.klinesTab.IsChartView() {
+				_, cmd := m.klinesTab.Update(msg)
+				return m, cmd
+			}
 			if m.activeTab < TabKlines {
 				m.activeTab++
 			}

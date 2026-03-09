@@ -182,15 +182,16 @@ func (m *KlinesViewModel) View() string {
 		return b.String()
 	}
 
+	b.WriteString(m.renderIntervalSelector())
+	b.WriteString("\n\n")
+
 	if len(m.klines) == 0 {
-		b.WriteString(ui.SubtitleStyle.Render("No kline data available for this interval"))
+		b.WriteString(ui.StatusRunningStyle.Render("⚠ No kline data for this interval"))
 		b.WriteString("\n\n")
-		b.WriteString(ui.HelpStyle.Render("[←→] Change Interval • [Esc] Back"))
+		b.WriteString(ui.HelpStyle.Render("[←→/hl] Interval • [+/-] Candles • [R] Refresh • [Esc] Back"))
 		return b.String()
 	}
 
-	b.WriteString(m.renderIntervalSelector())
-	b.WriteString("\n\n")
 	b.WriteString(m.renderChart())
 	b.WriteString("\n\n")
 	b.WriteString(m.renderStats())

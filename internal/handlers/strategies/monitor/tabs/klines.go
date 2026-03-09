@@ -39,6 +39,12 @@ func (m *KlinesModel) Init() tea.Cmd {
 	return m.exchangeList.Init()
 }
 
+// IsChartView returns true when the klines chart is being displayed,
+// so the parent can route left/right to interval switching instead of tab navigation.
+func (m *KlinesModel) IsChartView() bool {
+	return m.currentView == "klines"
+}
+
 func (m *KlinesModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case selectExchangeMsg:
