@@ -7,22 +7,22 @@ import (
 
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
-	monitoring2 "github.com/wisp-trading/sdk/pkg/types/monitoring"
+	"github.com/wisp-trading/sdk/pkg/types/monitoring"
 	"github.com/wisp-trading/wisp/internal/ui"
 )
 
 // OverviewModel is a tab that displays an overview of the strategy
 type OverviewModel struct {
-	querier    monitoring2.ViewQuerier
+	querier    monitoring.ViewQuerier
 	instanceID string
-	pnl        *monitoring2.PnLView
-	metrics    *monitoring2.StrategyMetrics
+	pnl        *monitoring.PnLView
+	metrics    *monitoring.StrategyMetrics
 	loading    bool
 	err        error
 }
 
 // NewOverviewModel creates a new overview tab
-func NewOverviewModel(querier monitoring2.ViewQuerier, instanceID string) *OverviewModel {
+func NewOverviewModel(querier monitoring.ViewQuerier, instanceID string) *OverviewModel {
 	return &OverviewModel{
 		querier:    querier,
 		instanceID: instanceID,
@@ -32,8 +32,8 @@ func NewOverviewModel(querier monitoring2.ViewQuerier, instanceID string) *Overv
 
 // Overview messages
 type overviewDataMsg struct {
-	pnl     *monitoring2.PnLView
-	metrics *monitoring2.StrategyMetrics
+	pnl     *monitoring.PnLView
+	metrics *monitoring.StrategyMetrics
 	err     error
 }
 

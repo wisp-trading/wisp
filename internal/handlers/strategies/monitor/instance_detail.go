@@ -20,9 +20,18 @@ const (
 	TabTrades
 	TabPnL
 	TabProfiling
+	TabKlines
 )
 
-var tabNames = []string{"Overview", "Positions", "Orderbook", "Trades", "PnL", "Profiling"}
+var tabNames = []string{
+	"Overview",
+	"Positions",
+	"Orderbook",
+	"Trades",
+	"PnL",
+	"Profiling",
+	"Klines",
+}
 
 // instanceDetailModel shows detailed view of a single instance
 type instanceDetailModel struct {
@@ -40,6 +49,7 @@ type instanceDetailModel struct {
 	tradesTab    *tabs.TradesModel
 	pnlTab       *tabs.PnLModel
 	profilingTab *tabs.ProfilingModel
+	klinesTab    *tabs.KlinesModel
 }
 
 // NewInstanceDetailModel creates a detail view for an instance
@@ -55,6 +65,7 @@ func NewInstanceDetailModel(querier monitoring.ViewQuerier, instanceID string) t
 		tradesTab:    tabs.NewTradesModel(querier, instanceID),
 		pnlTab:       tabs.NewPnLModel(querier, instanceID),
 		profilingTab: tabs.NewProfilingModel(querier, instanceID),
+		klinesTab:    tabs.NewKlinesModel(querier, instanceID),
 	}
 }
 
@@ -67,6 +78,7 @@ func (m *instanceDetailModel) Init() tea.Cmd {
 		m.tradesTab.Init(),
 		m.pnlTab.Init(),
 		m.profilingTab.Init(),
+		m.klinesTab.Init(),
 	)
 }
 
@@ -86,13 +98,21 @@ func (m *instanceDetailModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 		switch msg.String() {
 		case "left", "h":
+			if m.activeTab == TabKlines && m.klinesTab.IsChartView() {
+				_, cmd := m.klinesTab.Update(msg)
+				return m, cmd
+			}
 			if m.activeTab > 0 {
 				m.activeTab--
 			}
 			return m, nil
 
 		case "right", "l":
-			if m.activeTab < TabProfiling {
+			if m.activeTab == TabKlines && m.klinesTab.IsChartView() {
+				_, cmd := m.klinesTab.Update(msg)
+				return m, cmd
+			}
+			if m.activeTab < TabKlines {
 				m.activeTab++
 			}
 			return m, nil
@@ -115,6 +135,9 @@ func (m *instanceDetailModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case "6":
 			m.activeTab = TabProfiling
 			return m, nil
+		case "7":
+			m.activeTab = TabKlines
+			return m, nil
 		}
 
 		// Forward key messages only to active tab
@@ -132,6 +155,8 @@ func (m *instanceDetailModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			_, cmd = m.pnlTab.Update(msg)
 		case TabProfiling:
 			_, cmd = m.profilingTab.Update(msg)
+		case TabKlines:
+			_, cmd = m.klinesTab.Update(msg)
 		}
 		if cmd != nil {
 			cmds = append(cmds, cmd)
@@ -173,6 +198,11 @@ func (m *instanceDetailModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		cmds = append(cmds, cmd)
 	}
 
+	_, cmd = m.klinesTab.Update(msg)
+	if cmd != nil {
+		cmds = append(cmds, cmd)
+	}
+
 	return m, tea.Batch(cmds...)
 }
 
@@ -201,13 +231,18 @@ func (m *instanceDetailModel) View() string {
 		b.WriteString(m.pnlTab.View())
 	case TabProfiling:
 		b.WriteString(m.profilingTab.View())
+	case TabKlines:
+		b.WriteString(m.klinesTab.View())
 	}
 
 	// Help
 	b.WriteString("\n\n")
-	helpText := "[←→] Switch Tab • [1-6] Jump to Tab • [R] Refresh • [Q] Back"
-	if m.activeTab == TabOrderbook {
+	helpText := "[←→] Switch Tab • [1-7] Jump to Tab • [R] Refresh • [Q] Back"
+	switch m.activeTab {
+	case TabOrderbook:
 		helpText = "[←→] Switch Tab • [D] Toggle Depth • [R] Refresh • [Q] Back"
+	case TabKlines:
+		helpText = "[←→] Interval • [+/-] Candles • [R] Refresh • [Q] Back"
 	}
 	b.WriteString(ui.HelpStyle.Render(helpText))
 
