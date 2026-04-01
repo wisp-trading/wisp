@@ -16,6 +16,10 @@
 
 ---
 
+[![Go Report Card](https://goreportcard.com/badge/github.com/wisp-trading/wisp)](https://goreportcard.com/report/github.com/wisp-trading/wisp)
+
+---
+
 ## 🚀 What is Wisp?
 
 Wisp is a **low-code algorithmic trading framework** that lets you write strategies in Go and deploy them to live markets with confidence. Built on a plugin architecture with hot-reload support, Wisp enables rapid strategy development and deployment.
