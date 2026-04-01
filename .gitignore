@@ -4,6 +4,7 @@
 *.so
 *.dylib
 wisp
+.claude
 
 # Output directories
 bin/
