@@ -454,6 +454,8 @@ github.com/wisp-trading/connectors v0.1.0 h1:yA5nKWzEfgyikG0pMsHsifaZAYU2Nx59z1I
 github.com/wisp-trading/connectors v0.1.0/go.mod h1:eFsz2zYj1H+ahDg+DSQi9ePAa2AvgaRXj5SuCovuJlw=
 github.com/wisp-trading/connectors v0.1.1-0.20260402020435-2cf6fcf3b02d h1:g312OVNNaqT6BkLQQ8dZ2wVQGDvFMHSxLxYPyRBpZ+o=
 github.com/wisp-trading/connectors v0.1.1-0.20260402020435-2cf6fcf3b02d/go.mod h1:V+OjzheJh3yBvZefuQifElqNTOMzX8OHd1HBa1UiMCc=
+github.com/wisp-trading/connectors v0.1.1 h1:5+5Uu5ZjLddhx1i+bmJmcvTwUCAGoAU2NL5IHIJaxZw=
+github.com/wisp-trading/connectors v0.1.1/go.mod h1:V+OjzheJh3yBvZefuQifElqNTOMzX8OHd1HBa1UiMCc=
 github.com/wisp-trading/sdk v0.1.0 h1:HGHk+TSi4GMftcPp22804KSsRE1s0IHOOn7mn9QP5ZE=
 github.com/wisp-trading/sdk v0.1.0/go.mod h1:alrPpS5NuTB2IogCshEX08ZukjxwC7N00MWN+K6KlFY=
 github.com/xo/terminfo v0.0.0-20210125001918-ca9a967f8778/go.mod h1:2MuV+tbUrU1zIOPMxZ5EncGwgmMJsa+9ucAQZXxsObs=
