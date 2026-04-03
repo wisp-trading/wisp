@@ -221,7 +221,7 @@ func (m *instanceListModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 
 		// Handle common keys first (ctrl+c, q, esc)
-		if handled, cmd := m.BaseModel.HandleCommonKeys(msg); handled {
+		if handled, cmd := m.HandleCommonKeys(msg); handled {
 			return m, cmd
 		}
 

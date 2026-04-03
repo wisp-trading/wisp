@@ -5,8 +5,9 @@ setup:
 	@echo "🔧 Configuring git hooks..."
 	@git config core.hooksPath .githooks
 	@chmod +x .githooks/pre-commit
+	@chmod +x .git/hooks/pre-commit 2>/dev/null || true
 	@echo "📦 Installing golangci-lint..."
-	@go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest
+	@curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(shell go env GOPATH)/bin
 	@echo "✅ Setup complete"
 
 # Build the CLI binary

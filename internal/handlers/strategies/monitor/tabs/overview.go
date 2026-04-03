@@ -120,10 +120,10 @@ func (m *OverviewModel) renderPnLSummary() string {
 	total, _ := m.pnl.TotalPnL.Float64()
 	fees, _ := m.pnl.TotalFees.Float64()
 
-	b.WriteString(fmt.Sprintf("Realized:    %s\n", FormatPnL(realized)))
-	b.WriteString(fmt.Sprintf("Unrealized:  %s\n", FormatPnL(unrealized)))
-	b.WriteString(fmt.Sprintf("Total:       %s\n", FormatPnL(total)))
-	b.WriteString(fmt.Sprintf("Fees:        %s", lossStyle.Render(fmt.Sprintf("-$%.2f", fees))))
+	fmt.Fprintf(&b, "Realized:    %s\n", FormatPnL(realized))
+	fmt.Fprintf(&b, "Unrealized:  %s\n", FormatPnL(unrealized))
+	fmt.Fprintf(&b, "Total:       %s\n", FormatPnL(total))
+	fmt.Fprintf(&b, "Fees:        %s", lossStyle.Render(fmt.Sprintf("-$%.2f", fees)))
 
 	return b.String()
 }
@@ -138,15 +138,15 @@ func (m *OverviewModel) renderQuickStats() string {
 		return b.String()
 	}
 
-	b.WriteString(fmt.Sprintf("Signals Generated:  %d\n", m.metrics.SignalsGenerated))
-	b.WriteString(fmt.Sprintf("Signals Executed:   %d\n", m.metrics.SignalsExecuted))
+	fmt.Fprintf(&b, "Signals Generated:  %d\n", m.metrics.SignalsGenerated)
+	fmt.Fprintf(&b, "Signals Executed:   %d\n", m.metrics.SignalsExecuted)
 
 	successRate := 0.0
 	if m.metrics.SignalsGenerated > 0 {
 		successRate = float64(m.metrics.SignalsExecuted) / float64(m.metrics.SignalsGenerated) * 100
 	}
-	b.WriteString(fmt.Sprintf("Success Rate:       %.0f%%\n", successRate))
-	b.WriteString(fmt.Sprintf("Avg Latency:        %v", m.metrics.AverageLatency))
+	fmt.Fprintf(&b, "Success Rate:       %.0f%%\n", successRate)
+	fmt.Fprintf(&b, "Avg Latency:        %v", m.metrics.AverageLatency)
 
 	return b.String()
 }

@@ -106,22 +106,22 @@ func (m *PnLModel) View() string {
 	// Visual bars
 	maxWidth := 40
 
-	b.WriteString(fmt.Sprintf("%-15s %s\n", "REALIZED PNL", FormatPnL(realized)))
+	fmt.Fprintf(&b, "%-15s %s\n", "REALIZED PNL", FormatPnL(realized))
 	b.WriteString(renderBar(realized, total, maxWidth, ui.ColorSuccess))
 	b.WriteString("\n\n")
 
-	b.WriteString(fmt.Sprintf("%-15s %s\n", "UNREALIZED PNL", FormatPnL(unrealized)))
+	fmt.Fprintf(&b, "%-15s %s\n", "UNREALIZED PNL", FormatPnL(unrealized))
 	b.WriteString(renderBar(unrealized, total, maxWidth, ui.ColorWarning))
 	b.WriteString("\n\n")
 
-	b.WriteString(fmt.Sprintf("%-15s %s\n", "TOTAL PNL", FormatPnL(total)))
+	fmt.Fprintf(&b, "%-15s %s\n", "TOTAL PNL", FormatPnL(total))
 	b.WriteString(renderBar(total, total, maxWidth, ui.ColorPrimary))
 	b.WriteString("\n\n")
 
 	b.WriteString(lipgloss.NewStyle().Foreground(ui.ColorMuted).Render(strings.Repeat("─", 50)))
 	b.WriteString("\n\n")
 
-	b.WriteString(fmt.Sprintf("Trading Fees:  %s\n", lossStyle.Render(fmt.Sprintf("-$%.2f", fees))))
+	fmt.Fprintf(&b, "Trading Fees:  %s\n", lossStyle.Render(fmt.Sprintf("-$%.2f", fees)))
 
 	return b.String()
 }

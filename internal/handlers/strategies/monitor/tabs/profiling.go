@@ -146,26 +146,26 @@ func (m *ProfilingModel) renderStats() string {
 	// Summary Stats
 	b.WriteString(ui.SubtitleStyle.Render("Execution Summary"))
 	b.WriteString("\n")
-	b.WriteString(fmt.Sprintf("Total Runs:     %d\n", m.stats.TotalRuns))
-	b.WriteString(fmt.Sprintf("Success:        %d (%.1f%%)\n", m.stats.SuccessCount, m.stats.SuccessRate))
-	b.WriteString(fmt.Sprintf("Failures:       %d\n", m.stats.FailureCount))
-	b.WriteString(fmt.Sprintf("Last Execution: %s\n", m.stats.LastExecution.Format("15:04:05")))
+	fmt.Fprintf(&b, "Total Runs:     %d\n", m.stats.TotalRuns)
+	fmt.Fprintf(&b, "Success:        %d (%.1f%%)\n", m.stats.SuccessCount, m.stats.SuccessRate)
+	fmt.Fprintf(&b, "Failures:       %d\n", m.stats.FailureCount)
+	fmt.Fprintf(&b, "Last Execution: %s\n", m.stats.LastExecution.Format("15:04:05"))
 	b.WriteString("\n")
 
 	// Timing Statistics
 	b.WriteString(ui.SubtitleStyle.Render("Execution Time"))
 	b.WriteString("\n")
-	b.WriteString(fmt.Sprintf("Average:        %v\n", m.stats.AvgDuration.Round(time.Microsecond)))
-	b.WriteString(fmt.Sprintf("Min:            %v\n", m.stats.MinDuration.Round(time.Microsecond)))
-	b.WriteString(fmt.Sprintf("Max:            %v\n", m.stats.MaxDuration.Round(time.Microsecond)))
+	fmt.Fprintf(&b, "Average:        %v\n", m.stats.AvgDuration.Round(time.Microsecond))
+	fmt.Fprintf(&b, "Min:            %v\n", m.stats.MinDuration.Round(time.Microsecond))
+	fmt.Fprintf(&b, "Max:            %v\n", m.stats.MaxDuration.Round(time.Microsecond))
 	b.WriteString("\n")
 
 	// Percentiles
 	b.WriteString(ui.SubtitleStyle.Render("Percentiles"))
 	b.WriteString("\n")
-	b.WriteString(fmt.Sprintf("P50 (median):   %v\n", m.stats.P50.Round(time.Microsecond)))
-	b.WriteString(fmt.Sprintf("P95:            %v\n", m.stats.P95.Round(time.Microsecond)))
-	b.WriteString(fmt.Sprintf("P99:            %v\n", m.stats.P99.Round(time.Microsecond)))
+	fmt.Fprintf(&b, "P50 (median):   %v\n", m.stats.P50.Round(time.Microsecond))
+	fmt.Fprintf(&b, "P95:            %v\n", m.stats.P95.Round(time.Microsecond))
+	fmt.Fprintf(&b, "P99:            %v\n", m.stats.P99.Round(time.Microsecond))
 	b.WriteString("\n")
 
 	// Performance indicator
@@ -180,7 +180,7 @@ func (m *ProfilingModel) renderStats() string {
 	} else {
 		perfIndicator = ui.StatusErrorStyle.Render("🔴 Slow")
 	}
-	b.WriteString(fmt.Sprintf("Performance: %s\n", perfIndicator))
+	fmt.Fprintf(&b, "Performance: %s\n", perfIndicator)
 
 	b.WriteString("\n")
 	b.WriteString(ui.HelpStyle.Render("Press [tab] to view recent executions • [r] to refresh"))
@@ -266,13 +266,13 @@ func (m *ProfilingModel) renderExecutions() string {
 		if i == m.cursor && len(exec.IndicatorMetrics) > 0 {
 			b.WriteString("  Indicators:\n")
 			for name, timing := range exec.IndicatorMetrics {
-				b.WriteString(fmt.Sprintf("    • %s: %v (%d calls)\n",
+				fmt.Fprintf(&b, "    • %s: %v (%d calls)\n",
 					name,
 					timing.Duration.Round(time.Microsecond),
-					timing.Calls))
+					timing.Calls)
 			}
 			if exec.SignalGenTime > 0 {
-				b.WriteString(fmt.Sprintf("    • Signal Generation: %v\n", exec.SignalGenTime.Round(time.Microsecond)))
+				fmt.Fprintf(&b, "    • Signal Generation: %v\n", exec.SignalGenTime.Round(time.Microsecond))
 			}
 		}
 	}

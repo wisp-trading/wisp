@@ -449,7 +449,7 @@ func (m *KlinesViewModel) renderStats() string {
 	}
 
 	// Compute overall range stats
-	var minLow, maxHigh float64 = math.MaxFloat64, -math.MaxFloat64
+	minLow, maxHigh := math.MaxFloat64, -math.MaxFloat64
 	totalVol := 0.0
 	for _, k := range m.klines {
 		if k.Low < minLow {

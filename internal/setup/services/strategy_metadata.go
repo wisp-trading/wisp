@@ -119,7 +119,7 @@ func fetchFromGitHub() ([]StrategyMetadata, error) {
 			// Skip this example - no config.yml
 			continue
 		}
-		defer resp.Body.Close()
+		defer func() { _ = resp.Body.Close() }()
 
 		if resp.StatusCode != http.StatusOK {
 			// Skip this example - config.yml not found (404, etc)

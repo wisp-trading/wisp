@@ -97,9 +97,9 @@ func (m *AssetListModel) View() string {
 	for i, item := range m.items {
 		if i == m.selectedIndex {
 			cursor := ui.SelectedItemStyle.Render("▶ ")
-			b.WriteString(fmt.Sprintf("%s%s\n", cursor, ui.SelectedItemStyle.Render(item.displayName)))
+			fmt.Fprintf(&b, "%s%s\n", cursor, ui.SelectedItemStyle.Render(item.displayName))
 		} else {
-			b.WriteString(fmt.Sprintf("  %s\n", ui.ItemStyle.Render(item.displayName)))
+			fmt.Fprintf(&b, "  %s\n", ui.ItemStyle.Render(item.displayName))
 		}
 	}
 

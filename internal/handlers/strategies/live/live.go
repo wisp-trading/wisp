@@ -83,10 +83,11 @@ func (m *liveModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				}
 				return m, nil
 			case "enter":
-				if m.cursor == 0 {
+				switch m.cursor {
+				case 0:
 					// Back to previous view
 					return m, bubblon.Cmd(bubblon.Close())
-				} else if m.cursor == 1 {
+				case 1:
 					// Navigate to monitor view via router
 					return m, func() tea.Msg {
 						return router.NavigateMsg{Route: router.RouteMonitor}

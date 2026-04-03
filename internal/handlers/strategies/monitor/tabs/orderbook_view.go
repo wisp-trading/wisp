@@ -377,11 +377,11 @@ func (m *OrderbookViewModel) renderOrderbook() string {
 		midPrice := (bestAsk + bestBid) / 2
 
 		if isPrediction {
-			b.WriteString(fmt.Sprintf("Mid: %.4f   Bid: %.4f   Ask: %.4f",
-				midPrice, bestBid, bestAsk))
+			fmt.Fprintf(&b, "Mid: %.4f   Bid: %.4f   Ask: %.4f",
+				midPrice, bestBid, bestAsk)
 		} else {
-			b.WriteString(fmt.Sprintf("Mid: $%.2f   Bid: $%.2f   Ask: $%.2f",
-				midPrice, bestBid, bestAsk))
+			fmt.Fprintf(&b, "Mid: $%.2f   Bid: $%.2f   Ask: $%.2f",
+				midPrice, bestBid, bestAsk)
 		}
 	}
 

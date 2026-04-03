@@ -92,7 +92,7 @@ func (m *instanceDetailModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m, nil
 
 	case tea.KeyMsg:
-		if handled, cmd := m.BaseModel.HandleCommonKeys(msg); handled {
+		if handled, cmd := m.HandleCommonKeys(msg); handled {
 			return m, cmd
 		}
 
