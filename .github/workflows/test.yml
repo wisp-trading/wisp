@@ -26,6 +26,7 @@ jobs:
         uses: actions/setup-go@v5
         with:
           go-version: ${{ matrix.go-version }}
+          cache: false
 
 
       - name: Cache Go modules
@@ -40,7 +41,9 @@ jobs:
         env:
           GOPROXY: https://proxy.golang.org,direct
           GONOSUMDB: github.com/wisp-trading/*
-        run: go mod download
+        run: |
+          git config --global credential.helper ""
+          go mod download
 
       - name: Run tests with coverage
         run: go test -v -coverprofile=coverage.out ./...
@@ -65,7 +68,11 @@ jobs:
         uses: actions/setup-go@v5
         with:
           go-version: '1.24'
+          cache: false
 
+
+      - name: Disable git credential helper
+        run: git config --global credential.helper ""
 
       - name: golangci-lint
         uses: golangci/golangci-lint-action@v4
