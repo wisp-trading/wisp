@@ -2,18 +2,15 @@ package handlers
 
 import (
 	tea "github.com/charmbracelet/bubbletea"
-	"github.com/spf13/cobra"
 	"github.com/wisp-trading/wisp/internal/router"
-	handlers2 "github.com/wisp-trading/wisp/internal/setup/handlers"
 	"github.com/wisp-trading/wisp/internal/ui"
 )
 
 // mainMenuModel represents the main menu TUI
 type mainMenuModel struct {
-	choices  []string
-	cursor   int
-	selected string
-	router   router.Router
+	choices []string
+	cursor  int
+	router  router.Router
 }
 
 func (m mainMenuModel) Init() tea.Cmd {
@@ -82,13 +79,3 @@ func (m mainMenuModel) View() string {
 	return ui.MenuBoxStyle.Render(s)
 }
 
-func (h *rootHandler) handleCreateProject(cmd *cobra.Command) error {
-	// Run the init TUI flow
-	strategyExample, projectName, err := handlers2.RunInitTUI()
-	if err != nil {
-		return err
-	}
-
-	// Create the project with the selected strategy
-	return h.initHandler.HandleWithStrategy(strategyExample, projectName)
-}

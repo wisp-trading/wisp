@@ -1,0 +1,18 @@
+#!/bin/sh
+
+echo "Running golangci-lint..."
+
+if ! command -v golangci-lint > /dev/null 2>&1; then
+  echo "golangci-lint not found. Run: make install-hooks"
+  exit 1
+fi
+
+golangci-lint run --timeout=5m
+
+if [ $? -ne 0 ]; then
+  echo "Lint failed. Fix errors before committing."
+  exit 1
+fi
+
+echo "Lint passed."
+

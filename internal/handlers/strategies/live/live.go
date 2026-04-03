@@ -135,7 +135,7 @@ func (m *liveModel) View() string {
 		statusIcon := ui.StatusReadyStyle.Render("✅ INSTANCE STARTED")
 		message := ui.SubtitleStyle.Render("Strategy is now running in the background")
 
-		details := ui.MutedStyle.Copy().Italic(false).
+		details := ui.MutedStyle.Italic(false).
 			Render(
 				"• Trading instance spawned as separate process\n" +
 					fmt.Sprintf("• Logs: .wisp/instances/%s/stdout.log\n", m.strategy.Name) +

@@ -11,9 +11,8 @@ var (
 				Foreground(ui.ColorMuted).
 				Bold(true)
 
-	profitStyle  = ui.PnLProfitStyle
-	lossStyle    = ui.PnLLossStyle
-	neutralStyle = ui.PnLNeutralStyle
+	profitStyle = ui.PnLProfitStyle
+	lossStyle   = ui.PnLLossStyle
 )
 
 // FormatPnL formats a PnL value with appropriate styling

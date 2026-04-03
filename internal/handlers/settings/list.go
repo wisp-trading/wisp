@@ -147,7 +147,7 @@ func (m *ConnectorListModel) View() string {
 
 	// Error message if any
 	if m.err != nil {
-		errorBox := ui.ErrorBoxStyle.Copy().
+		errorBox := ui.ErrorBoxStyle.
 			Width(68).
 			Render("❌ " + m.err.Error())
 		content.WriteString(errorBox)
@@ -249,14 +249,14 @@ func (m *ConnectorListModel) renderConfiguredConnector(conn config.Connector, se
 
 func (m *ConnectorListModel) renderAvailableConnector(name string, selected bool) string {
 	cursor := "  "
-	style := ui.MutedStyle.Copy().Italic(false)
+	style := ui.MutedStyle.Italic(false)
 
 	if selected {
 		cursor = ui.SelectedItemStyle.Render("▶ ")
 		style = ui.SelectedItemStyle
 	}
 
-	bullet := ui.SectionHeaderStyle.Copy().Bold(false).Render("• ")
+	bullet := ui.SectionHeaderStyle.Bold(false).Render("• ")
 
 	line := cursor + bullet + style.Render(name) + "\n"
 	return line

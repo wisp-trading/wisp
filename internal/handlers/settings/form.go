@@ -430,7 +430,7 @@ func (m *ConnectorFormModel) renderDetailView() string {
 	}
 	var networkStyle lipgloss.Style
 	if networkValue == "testnet" {
-		networkStyle = ui.NetworkBadgeWarningStyle.Copy().Bold(true)
+		networkStyle = ui.NetworkBadgeWarningStyle.Bold(true)
 	} else {
 		networkStyle = ui.ValueStyle
 	}
@@ -480,7 +480,7 @@ func (m *ConnectorFormModel) renderDetailView() string {
 		ui.KeyHintStyle.Render("d"),
 		ui.KeyHintStyle.Render("q"),
 	)
-	content.WriteString(ui.HelpStyle.Copy().Padding(0).Render(help))
+	content.WriteString(ui.HelpStyle.Padding(0).Render(help))
 
 	return content.String()
 }

@@ -28,14 +28,13 @@ type StrategyTemplate struct {
 
 // InitTUIModel represents the init flow TUI state
 type InitTUIModel struct {
-	screen            InitScreen
-	cursor            int
-	strategies        []StrategyTemplate
-	selectedStrategy  *StrategyTemplate
-	projectName       string
-	projectNameInput  string
-	err               error
-	loadingStrategies bool
+	screen           InitScreen
+	cursor           int
+	strategies       []StrategyTemplate
+	selectedStrategy *StrategyTemplate
+	projectName      string
+	projectNameInput string
+	err              error
 }
 
 func NewInitTUIModel(strategies []StrategyTemplate) InitTUIModel {
@@ -140,7 +139,7 @@ func (m InitTUIModel) viewStrategySelection() string {
 	if len(m.strategies) == 0 {
 		s += ui.MutedStyle.Render("No strategies available. Check SDK connection.") + "\n\n"
 		s += ui.MutedStyle.Render("q Quit")
-		return ui.MenuBoxStyle.Copy().Width(70).Render(s)
+		return ui.MenuBoxStyle.Width(70).Render(s)
 	}
 
 	s += ui.MutedStyle.Render("Select a strategy template to get started:") + "\n\n"
@@ -166,7 +165,7 @@ func (m InitTUIModel) viewStrategySelection() string {
 
 	s += "\n\n" + ui.MutedStyle.Render("↑↓/jk Navigate  ↵ Select  q Quit")
 
-	return ui.MenuBoxStyle.Copy().Width(70).Render(s)
+	return ui.MenuBoxStyle.Width(70).Render(s)
 }
 
 func (m InitTUIModel) viewProjectName() string {
@@ -174,19 +173,19 @@ func (m InitTUIModel) viewProjectName() string {
 
 	var s string
 	s += "\n" + title + "\n\n"
-	s += ui.LabelStyle.Copy().Width(0).Render(fmt.Sprintf("Selected Strategy: %s", m.selectedStrategy.DisplayName)) + "\n\n"
+	s += ui.LabelStyle.Width(0).Render(fmt.Sprintf("Selected Strategy: %s", m.selectedStrategy.DisplayName)) + "\n\n"
 	s += ui.MutedStyle.Render("Enter a name for your project:") + "\n"
 	s += ui.MutedStyle.Render("(Spaces will be converted to underscores)") + "\n\n"
 
-	s += ui.LabelStyle.Copy().Width(0).Render("Project Name: ") + ui.InputStyle.Render(m.projectNameInput+"_") + "\n\n"
+	s += ui.LabelStyle.Width(0).Render("Project Name: ") + ui.InputStyle.Render(m.projectNameInput+"_") + "\n\n"
 
 	if m.err != nil {
-		s += ui.ErrorBoxStyle.Copy().Width(0).Render("✗ "+m.err.Error()) + "\n\n"
+		s += ui.ErrorBoxStyle.Width(0).Render("✗ "+m.err.Error()) + "\n\n"
 	}
 
 	s += ui.MutedStyle.Render("↵ Create  ⎋ Back  ^C Cancel")
 
-	return ui.MenuBoxStyle.Copy().Width(70).Render(s)
+	return ui.MenuBoxStyle.Width(70).Render(s)
 }
 
 // RunInitTUI runs the init TUI flow and returns the selected strategy and project name

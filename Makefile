@@ -1,4 +1,13 @@
-.PHONY: build install test clean run-init run-backtest run-interactive help
+.PHONY: build install test clean run-init run-backtest run-interactive help setup
+
+# Setup development environment (run once after cloning)
+setup:
+	@echo "🔧 Configuring git hooks..."
+	@git config core.hooksPath .githooks
+	@chmod +x .githooks/pre-commit
+	@echo "📦 Installing golangci-lint..."
+	@go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest
+	@echo "✅ Setup complete"
 
 # Build the CLI binary
 build:

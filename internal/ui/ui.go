@@ -73,7 +73,7 @@ func DisplayResults(results *BacktestResults) {
 		{"Duration", fmt.Sprintf("%.2fs", results.Duration.Seconds())},
 	}
 
-	pterm.DefaultTable.WithHasHeader().WithData(data).Render()
+	_ = pterm.DefaultTable.WithHasHeader().WithData(data).Render()
 
 	if results.ResultsFile != "" {
 		pterm.Println()
@@ -92,7 +92,7 @@ func DisplayConfigSummary(strategy, exchange, pair, timeframe string) {
 		{Level: 0, Text: fmt.Sprintf("Timeframe: %s", pterm.Cyan(timeframe))},
 	}
 
-	pterm.DefaultBulletList.WithItems(items).Render()
+	_ = pterm.DefaultBulletList.WithItems(items).Render()
 	pterm.Println()
 }
 

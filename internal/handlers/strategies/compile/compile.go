@@ -22,7 +22,6 @@ type compileModel struct {
 	compileService strategyTypes.CompileService
 	done           bool
 	err            error
-	output         string
 	progressValue  float64
 	frame          int
 }
