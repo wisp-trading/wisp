@@ -6,11 +6,11 @@
 
 [![Go Version](https://img.shields.io/badge/Go-1.24+-00ADD8?style=flat&logo=go)](https://go.dev/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Documentation](https://img.shields.io/badge/docs-online-blue)](https://documentation-chi-ecru.vercel.app/docs/intro)
+[![Documentation](https://img.shields.io/badge/docs-usewisp.dev-blue)](https://usewisp.dev/docs)
 
 *Build, backtest, and deploy trading strategies with a simple TUI interface.*
 
-[Quick Start](https://documentation-chi-ecru.vercel.app/docs/getting-started/) • [Features](#features) • [Documentation](https://documentation-chi-ecru.vercel.app/docs/intro) • [Examples](https://documentation-chi-ecru.vercel.app/docs/examples/)
+[Quick Start](https://usewisp.dev/docs/getting-started) • [Features](#features) • [Documentation](https://usewisp.dev/docs) • [Examples](https://usewisp.dev/docs/examples)
 
 </div>
 
@@ -22,16 +22,16 @@
 
 ## 🚀 What is Wisp?
 
-Wisp is a **low-code algorithmic trading framework** that lets you write strategies in Go and deploy them to live markets with confidence. Built on a plugin architecture with hot-reload support, Wisp enables rapid strategy development and deployment.
+Wisp is a **low-code algorithmic trading framework** that lets you write strategies in Go and deploy them to live markets. Strategies run directly in the framework with minimal setup and maximum control.
 
 ### What Wisp Does For You
 
-✅ **Plugin-Based Strategy System** - Write strategies as Go plugins, compile once, deploy anywhere  
-✅ **Interactive TUI** - Beautiful terminal interface for managing strategies and monitoring live trades  
-✅ **Multi-Exchange Support** - Unified API across multiple exchanges (Hyperliquid perps stable, more coming soon)  
-✅ **Real-Time Monitoring** - Live orderbook, P&L, positions, and trade data via Unix sockets  
-✅ **Graceful Lifecycle Management** - HTTP-based process control for reliable starts and stops  
-✅ **Production-Ready** - Deploy strategies to live markets with confidence  
+✅ **Event-Driven Execution** - Write Go code that owns its own run loop, no polling or framework callbacks
+✅ **Interactive TUI** - Beautiful terminal interface for managing strategies and monitoring live trades
+✅ **Multi-Exchange Support** - Unified API across Hyperliquid, Bybit, Paradex, Polymarket, and Gate.io
+✅ **Real-Time Monitoring** - Live orderbook, P&L, positions, and trade data via Unix sockets
+✅ **Graceful Lifecycle Management** - HTTP-based process control for reliable starts and stops
+✅ **Production-Ready** - Deploy strategies to live markets with confidence
 
 ---
 
@@ -40,13 +40,13 @@ Wisp is a **low-code algorithmic trading framework** that lets you write strateg
 ### Install via Go
 
 ```bash
-go install github.com/github.com/wisp-trading/connectorsg/wisp@latest
+go install github.com/wisp-trading/wisp@latest
 ```
 
 ### Build from Source
 
 ```bash
-git clone https://github.com/github.com/wisp-trading/connectorsorg/wisp
+git clone https://github.com/wisp-trading/wisp
 cd wisp
 go build -o wisp
 sudo mv wisp /usr/local/bin/
@@ -73,7 +73,7 @@ wisp
 This creates:
 ```
 my-trading-bot/
-├── config.yml              # Strategy configuration
+├── config.yml              # Framework configuration
 ├── exchanges.yml           # Exchange credentials & settings
 └── strategies/
     └── momentum/
@@ -83,42 +83,74 @@ my-trading-bot/
 
 ### 2. Write Your Strategy
 
-Wisp strategies implement a simple interface:
+Create your strategy in `strategies/momentum/main.go`:
 
 ```go
 package main
 
 import (
-    "github.com/wisp-trading/sdk/pkg/types/wisp"
+    "context"
+    "time"
+
+    "github.com/wisp-trading/sdk/pkg/types/connector"
     "github.com/wisp-trading/sdk/pkg/types/strategy"
+    "github.com/wisp-trading/sdk/pkg/types/wisp"
 )
 
-func NewStrategy(k wisp.Wisp) strategy.Strategy {
-    return &myStrategy{k: k}
-}
-
-type myStrategy struct {
+type MyStrategy struct {
     strategy.BaseStrategy
     k wisp.Wisp
 }
 
-func (s *myStrategy) GetSignals() ([]*strategy.Signal, error) {
-    // Your trading logic here
-    price, _ := s.k.Market().Price(s.k.Asset("BTC"))
-    rsi, _ := s.k.Indicators().RSI(s.k.Asset("BTC"), 14)
-    
-    if rsi.LessThan(numerical.NewFromInt(30)) {
-        signal := s.k.Signal(s.GetName()).
-            Buy(s.k.Asset("BTC"), "hyperliquid", numerical.NewFromFloat(0.1)).
-            Build()
-        return []*strategy.Signal{signal}, nil
-    }
-    
-    return nil, nil
+func NewStrategy(k wisp.Wisp) strategy.Strategy {
+    s := &MyStrategy{k: k}
+    s.BaseStrategy = *strategy.NewBaseStrategy(strategy.BaseStrategyConfig{Name: "my-strategy"})
+    return s
 }
 
-func (s *myStrategy) GetName() strategy.StrategyName {
-    return "MyStrategy"
+func (s *MyStrategy) Start(ctx context.Context) error {
+    return s.StartWithRunner(ctx, s.run)
+}
+
+func (s *MyStrategy) run(ctx context.Context) {
+    ticker := time.NewTicker(5 * time.Minute)
+    defer ticker.Stop()
+
+    pair := s.k.Pair("BTC", "USDT")
+
+    for {
+        select {
+        case <-ctx.Done():
+            return
+        case <-ticker.C:
+            // Fetch klines
+            klines := s.k.Spot().Klines(connector.Hyperliquid, pair, "1h", 14)
+
+            // Calculate RSI
+            rsi, _ := s.k.Indicators().RSI(klines, 14)
+            if len(rsi) == 0 {
+                continue
+            }
+
+            currentRSI := rsi[len(rsi)-1]
+
+            // Oversold: buy
+            if currentRSI < 30 {
+                signal, _ := s.k.Spot().Signal(s.GetName()).
+                    Buy(pair, connector.Hyperliquid, s.k.Asset("BTC").Qty(0.01)).
+                    Build()
+                s.Emit(signal)
+            }
+
+            // Overbought: sell
+            if currentRSI > 70 {
+                signal, _ := s.k.Spot().Signal(s.GetName()).
+                    Sell(pair, connector.Hyperliquid, s.k.Asset("BTC").Qty(0.01)).
+                    Build()
+                s.Emit(signal)
+            }
+        }
+    }
 }
 ```
 
@@ -150,16 +182,7 @@ parameters:
   position_size: 0.1
 ```
 
-### 4. Compile Your Strategy
-
-```bash
-wisp
-# Navigate to: Strategies → momentum → Compile
-```
-
-Wisp compiles your strategy into a `.so` plugin file with progress tracking.
-
-### 5. Deploy to Live Trading
+### 4. Deploy to Live Trading
 
 ```bash
 wisp
@@ -168,7 +191,7 @@ wisp
 
 Your strategy runs as a detached process, continuing even after you close the CLI.
 
-### 6. Monitor Live Strategies
+### 5. Monitor Live Strategies
 
 ```bash
 wisp
@@ -182,7 +205,7 @@ Real-time monitoring dashboard shows:
 - **Trades**: Recent trade history
 - **PnL**: Realized/unrealized profit & loss
 
-### 7. Stop a Running Strategy
+### 6. Stop a Running Strategy
 
 ```bash
 # From Monitor view:
@@ -199,13 +222,12 @@ Graceful HTTP-based shutdown ensures clean process termination.
 
 ### Strategy Development
 
-- **Plugin Architecture** - Strategies compile to Go plugins (.so files)
-- **Hot Reload** - Update strategies without restarting the framework
+- **Event-Driven Architecture** - Own your run loop with `Start()` and `run()` methods, no polling framework
+- **Goroutine-Native** - Leverage Go's concurrency without fighting the runtime
 - **Type-Safe API** - Full IDE support with autocomplete
-- **Rich Indicators** - RSI, MACD, Bollinger Bands, EMA, SMA, and more
+- **Rich Indicators** - RSI, MACD, Bollinger Bands, EMA, SMA, ATR, Stochastic and more
 - **Multi-Asset** - Trade multiple assets simultaneously
 - **Multi-Exchange** - Execute across multiple exchanges in one strategy
-
 
 ### Live Trading
 
@@ -226,12 +248,13 @@ Graceful HTTP-based shutdown ensures clean process termination.
 - **Multi-Instance** - Monitor multiple strategies at once
 
 ### Exchange Support
-
-| Exchange | Spot | Perpetual | Status |
-|----------|------|-----------|--------|
-| Hyperliquid | 🚧 | ✅ | Perps Stable |
-| Bybit | 🚧 | 🚧 | In Development |
-| Paradex | 🚧 | 🚧 | In Development |
+| Exchange | Spot | Perpetual | Prediction |
+|----------|------|-----------|-----------|
+| Hyperliquid | - | ✅ | - |
+| Bybit | ✅ | ✅ | - |
+| Paradex | ✅ | ✅ | - |
+| Polymarket | - | - | ✅ |
+| Gate.io | ✅ | - | - |
 
 ### User Interface
 
@@ -239,21 +262,21 @@ Graceful HTTP-based shutdown ensures clean process termination.
 - **Keyboard Navigation** - Vim-style keybindings (hjkl)
 - **Responsive Design** - Adapts to terminal size
 - **Color Coding** - Visual status indicators
-- **Progress Tracking** - Real-time compilation and backtest progress
+- **Progress Tracking** - Real-time backtest progress
 
 ---
 
 ## 📚 Documentation
 
-**Full Documentation**: [https://documentation-chi-ecru.vercel.app/docs/intro](https://documentation-chi-ecru.vercel.app/docs/intro)
+**Full Documentation**: [https://usewisp.dev/docs](https://usewisp.dev/docs)
 
 ### Key Resources
 
-- [Introduction](https://documentation-chi-ecru.vercel.app/docs/intro#what-wisp-does-for-you) - Architecture overview
-- [Strategy Development](https://documentation-chi-ecru.vercel.app/docs/strategies) - Writing strategies
-- [SDK Reference](https://documentation-chi-ecru.vercel.app/docs/sdk) - API documentation
-- [Exchange Configuration](https://documentation-chi-ecru.vercel.app/docs/exchanges) - Setting up exchanges
-- [Live Trading](https://documentation-chi-ecru.vercel.app/docs/live) - Deployment guide
+- [Getting Started](https://usewisp.dev/docs/getting-started) - Installation and first steps
+- [Writing Strategies](https://usewisp.dev/docs/getting-started/writing-strategies) - 13 strategy patterns with examples
+- [Strategy Examples](https://usewisp.dev/docs/examples) - Real strategies from basic to advanced
+- [API Reference](https://usewisp.dev/docs/api/indicators/rsi) - Complete API documentation
+- [Architecture](https://usewisp.dev/docs/intro) - How Wisp works
 
 ---
 
@@ -315,14 +338,14 @@ Graceful HTTP-based shutdown ensures clean process termination.
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
-│                      WISP CLI (TUI)                       │
-│  • Strategy Browser  • Compiler  • Monitor  • Live Trading │
+│                      WISP CLI (TUI)                         │
+│  • Strategy Browser  • Monitor  • Live Trading              │
 └────────────────────┬────────────────────────────────────────┘
                      │
                      ▼
 ┌─────────────────────────────────────────────────────────────┐
 │              INSTANCE MANAGER (Process Control)             │
-│  • Start/Stop Strategies  • State Persistence               │
+│  • Load strategies  • Start/Stop  • State Persistence       │
 └────────────────────┬────────────────────────────────────────┘
                      │
         ┌────────────┴────────────┐
@@ -330,7 +353,8 @@ Graceful HTTP-based shutdown ensures clean process termination.
 ┌──────────────────┐    ┌──────────────────┐
 │  Strategy Process│    │  Strategy Process│
 │  ┌────────────┐ │    │  ┌────────────┐ │
-│  │ Your Plugin│ │    │  │ Your Plugin│ │
+│  │Strategy Go │ │    │  │Strategy Go │ │
+│  │   Code     │ │    │  │   Code     │ │
 │  └────────────┘ │    │  └────────────┘ │
 │  ┌────────────┐ │    │  ┌────────────┐ │
 │  │  SDK Core  │ │    │  │  SDK Core  │ │
@@ -355,7 +379,7 @@ Graceful HTTP-based shutdown ensures clean process termination.
 
 1. **CLI** - Interactive terminal interface for managing strategies
 2. **Instance Manager** - Controls strategy lifecycle (start/stop/monitor)
-3. **Strategy Plugins** - Your compiled trading logic (.so files)
+3. **Strategy Runtime** - Loads and executes Go strategies
 4. **SDK Runtime** - Core execution engine with data ingestion
 5. **Monitoring Server** - HTTP API exposed via Unix sockets
 6. **Exchange Connectors** - Unified interface to multiple exchanges
@@ -379,13 +403,6 @@ wisp --cli          # Show command help
 wisp version        # Show version info
 ```
 
-### Advanced Usage
-
-```bash
-# Run specific strategy (internal use - called by Instance Manager)
-wisp run-strategy --strategy momentum
-```
-
 ---
 
 ## 📊 Example Strategies
@@ -393,53 +410,81 @@ wisp run-strategy --strategy momentum
 ### Momentum (RSI-Based)
 
 ```go
-func (s *momentumStrategy) GetSignals() ([]*strategy.Signal, error) {
-    asset := s.k.Asset("BTC")
-    rsi, _ := s.k.Indicators().RSI(asset, 14)
-    
-    if rsi.LessThan(numerical.NewFromInt(30)) {
-        return []*strategy.Signal{
-            s.k.Signal(s.GetName()).
-                Buy(asset, "hyperliquid", numerical.NewFromFloat(0.1)).
-                Build(),
-        }, nil
-    }
-    
-    if rsi.GreaterThan(numerical.NewFromInt(70)) {
-        return []*strategy.Signal{
-            s.k.Signal(s.GetName()).
-                Sell(asset, "hyperliquid", numerical.NewFromFloat(0.1)).
-                Build(),
-        }, nil
-    }
-    
-    return nil, nil
+func (s *momentumStrategy) run(ctx context.Context) {
+ticker := time.NewTicker(5 * time.Minute)
+defer ticker.Stop()
+pair := s.k.Pair("BTC", "USDT")
+
+for {
+select {
+case <-ctx.Done():
+return
+case <-ticker.C:
+klines := s.k.Spot().Klines(connector.Hyperliquid, pair, "1h", 14)
+rsi, _ := s.k.Indicators().RSI(klines, 14)
+
+if len(rsi) == 0 {
+continue
+}
+
+current := rsi[len(rsi)-1]
+
+if current < 30 {
+signal, _ := s.k.Spot().Signal(s.GetName()).
+Buy(pair, connector.Hyperliquid, s.k.Asset("BTC").Qty(0.1)).
+Build()
+s.Emit(signal)
+}
+
+if current > 70 {
+signal, _ := s.k.Spot().Signal(s.GetName()).
+Sell(pair, connector.Hyperliquid, s.k.Asset("BTC").Qty(0.1)).
+Build()
+s.Emit(signal)
+}
+}
+}
 }
 ```
 
-### Arbitrage (Cross-Exchange)
+### Cross-Exchange Trading
 
 ```go
-func (s *arbitrageStrategy) GetSignals() ([]*strategy.Signal, error) {
-    asset := s.k.Asset("BTC")
-    
-    // Find arbitrage opportunities
-    opportunities := s.k.Market().FindArbitrage(
-        asset,
-        numerical.NewFromFloat(0.5), // Min 0.5% spread
-    )
-    
-    if len(opportunities) > 0 {
-        opp := opportunities[0]
-        return []*strategy.Signal{
-            s.k.Signal(s.GetName()).
-                Buy(asset, opp.BuyExchange, quantity).
-                Sell(asset, opp.SellExchange, quantity).
-                Build(),
-        }, nil
-    }
-    
-    return nil, nil
+func (s *crossExchangeStrategy) run(ctx context.Context) {
+ticker := time.NewTicker(1 * time.Minute)
+defer ticker.Stop()
+pair := s.k.Pair("BTC", "USDT")
+
+for {
+select {
+case <-ctx.Done():
+return
+case <-ticker.C:
+// Fetch price data from both exchanges
+bybitPrice := s.k.Spot().Klines(connector.Bybit, pair, "1m", 1)
+hyperliquidPrice := s.k.Spot().Klines(connector.Hyperliquid, pair, "1m", 1)
+
+if len(bybitPrice) == 0 || len(hyperliquidPrice) == 0 {
+continue
+}
+
+// Compare prices and execute on spread
+spread := bybitPrice[0].Close.Sub(hyperliquidPrice[0].Close)
+
+// If profitable spread detected, trade both sides
+if spread.GreaterThan(numerical.Zero) {
+buy, _ := s.k.Spot().Signal(s.GetName()).
+Buy(pair, connector.Hyperliquid, s.k.Asset("BTC").Qty(0.5)).
+Build()
+s.Emit(buy)
+
+sell, _ := s.k.Spot().Signal(s.GetName()).
+Sell(pair, connector.Bybit, s.k.Asset("BTC").Qty(0.5)).
+Build()
+s.Emit(sell)
+}
+}
+}
 }
 ```
 
@@ -454,7 +499,7 @@ We welcome contributions! Here's how you can help:
 ```bash
 # Clone the repo
 git clone https://github.com/wisp-trading/wisp
-cd wisp-cli
+cd wisp
 
 # Install dependencies
 go mod download
@@ -527,39 +572,45 @@ ginkgo watch -r
 
 ## ❓ FAQ
 
-**Q: Is Wisp suitable for production trading?**  
+**Q: Is Wisp suitable for production trading?**
 A: Yes, but use appropriate risk management. Start with small positions and paper trading.
 
-**Q: What exchanges are supported?**  
+**Q: What exchanges are supported?**
 A: Currently only Hyperliquid perpetuals are stable in production. Bybit and Paradex are in active development.
 
-**Q: Can I run multiple strategies simultaneously?**  
+**Q: Can I run multiple strategies simultaneously?**
 A: Yes! Each strategy runs in its own isolated process.
 
-**Q: How do I handle API keys securely?**  
+**Q: How do I handle API keys securely?**
 A: Store them in `exchanges.yml` with proper file permissions (chmod 600).
 
-**Q: Can I write strategies in languages other than Go?**  
-A: Wisp strategies must be written in Go to compile as plugins. However, you can integrate machine learning models from any language using:
+**Q: Can I write strategies in languages other than Go?**
+A: Wisp strategies must be written in Go to run in the framework. However, you can integrate machine learning models from any language using:
 - **gRPC** - Call ML inference services in Python, R, or any language
 - **ONNX Runtime** - Load pre-trained models directly in Go
 - **HTTP APIs** - Connect to external prediction services
+
 ---
 
 ## 🐛 Troubleshooting
 
-### Strategy Won't Compile
+### Strategy Won't Start
 
 ```bash
 # Ensure Go version matches
 go version  # Should be 1.24+
 
-# Clear build cache
-go clean -cache
+# Check strategy code for syntax errors
+# The CLI will show runtime errors during startup
 
-# Rebuild with verbose output
-go build -v -o strategies/momentum/momentum.so -buildmode=plugin strategies/momentum/main.go
+# Verify imports are correct
+grep -r "github.com/wisp-trading/sdk" strategies/momentum/main.go
+
+# Check file permissions
+chmod 644 strategies/momentum/main.go
 ```
+
+If you see errors when starting a strategy, check your Go source code for syntax or import errors. The CLI will display the exact error message.
 
 ### Process Won't Stop
 
@@ -605,7 +656,7 @@ Built with:
 
 ## 📞 Support
 
-- 📖 [Documentation](https://documentation-chi-ecru.vercel.app/docs/intro)
+- 📖 [Documentation](https://usewisp.dev/docs)
 - 💬 [Discord Community](#) *(coming soon)*
 - 🐛 [Issue Tracker](https://github.com/wisp-trading/wisp/issues)
 - ✉️ [Email Support](#) *(for enterprise)*
