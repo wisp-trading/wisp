@@ -1,4 +1,4 @@
-# Wisp CLI
+# [Wisp](https://usewisp.dev)
 
 <div align="center">
 
