@@ -11,4 +11,4 @@
 //
 // For documentation, visit https://usewisp.dev/docs
 // For source code, visit https://github.com/wisp-trading/wisp
-package wisp
+package main
