@@ -9,6 +9,10 @@ on:
 permissions:
   contents: read
 
+env:
+  # Monorepo go.work would otherwise pull submodule graph into lint/test.
+  GOWORK: "off"
+
 jobs:
   test:
     runs-on: ubuntu-latest
@@ -21,14 +25,13 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@v5
         with:
-          # Match go.mod / toolchain go1.26.5
           go-version: '1.26.5'
-          cache-dependency-path: |
-            go.sum
-            sdk/go.sum
+          cache-dependency-path: go.sum
+
+      - name: Download modules
+        run: go mod download
 
       - name: Run tests with coverage
-        # CLI packages only — examples/ is a separate module; sdk has its own CI
         run: go test -v -coverprofile=coverage.out ./cmd/... ./internal/... ./pkg/...
 
       - name: Upload coverage to Codecov
@@ -54,8 +57,9 @@ jobs:
           go-version: '1.26.5'
           cache: false
 
-      # Install with the job's Go so the linter binary is built with ≥1.26
-      # (prebuilt v1.x binaries are go1.24 and refuse to target go1.26.5).
+      - name: Download modules
+        run: go mod download
+
       - name: Install golangci-lint
         run: go install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@latest
 
