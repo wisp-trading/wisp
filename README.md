@@ -31,7 +31,7 @@ Wisp is a **low-code algorithmic trading framework** that lets you write strateg
 ✅ **Multi-Exchange Support** - Unified API across Hyperliquid, Bybit, Paradex, Polymarket, and Gate.io
 ✅ **Real-Time Monitoring** - Live orderbook, P&L, positions, and trade data via Unix sockets
 ✅ **Graceful Lifecycle Management** - HTTP-based process control for reliable starts and stops
-✅ **Production-Ready** - Deploy strategies to live markets with confidence
+✅ **Live-capable** - Process-isolated strategies; Hyperliquid perps are the stable production path
 
 ---
 
@@ -592,10 +592,10 @@ ginkgo watch -r
 ## ❓ FAQ
 
 **Q: Is Wisp suitable for production trading?**
-A: Yes, but use appropriate risk management. Start with small positions and paper trading.
+A: For **Hyperliquid perpetuals**, yes — with risk management and small size first. Other venues are beta/experimental. Aimed at pro/quant users, not retail “set and forget.”
 
 **Q: What exchanges are supported?**
-A: Currently only Hyperliquid perpetuals are stable in production. Bybit and Paradex are in active development.
+A: Hyperliquid perps = production. Polymarket = alpha. Bybit / Paradex / Gate = beta. Deribit options = experimental. (Same matrix as the connectors README.)
 
 **Q: Can I run multiple strategies simultaneously?**
 A: Yes! Each strategy runs in its own isolated process.
