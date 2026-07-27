@@ -12,24 +12,28 @@ fx.Start → runtime.StartStandalone(strategy, configDir, wispYml) → runtime.W
 - Then performs a single clean `Stop` and the process exits
 - Do **not** write your own signal loop that ignores `/shutdown`
 
-## Run (when connectors build is green)
+## Green path (from monorepo root)
 
 ```bash
-# from monorepo root (wisp + sdk submodule)
-cd examples/reference-standalone
-# copy/adapt config as needed
-go run . -config . -wisp ../../wisp.yml
+# Go 1.26+
+make smoke
+
+# With credentials (copy example and enable an exchange):
+cp wisp.yml.example wisp.yml
+# edit wisp.yml → enable connector + keys
+
+./examples/reference-standalone/reference-standalone \
+  --config ./examples/reference-standalone \
+  --wisp ./wisp.yml
 ```
 
-Until `connectors` hyperliquid is fixed ([connectors#52](https://github.com/wisp-trading/connectors/issues/52)),
-full `go run` may fail to compile the live Module. The source below is still the
-canonical pattern for strategy binaries (including private alpha).
+## TUI / supervisor
 
-## Files
+Place a strategy under `strategies/<name>/` with `main.go` + `config.yml`.  
+`wisp` Start Live will **compile a binary** and spawn it (not a `.so` plugin).
 
-| File | Role |
-|------|------|
-| `main.go` | Process host: fx + StartStandalone + Wait |
-| `strategy.go` | Minimal self-directed strategy |
+Legacy plugin path is only used if no binary can be built.
 
-Private strategies should copy this pattern; they stay out of this repo.
+## Private strategies
+
+Copy this package pattern. Keep private alpha out of product git.

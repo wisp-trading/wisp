@@ -55,3 +55,17 @@ debug/
 
 # Credentials (global exchange config)
 exchanges.yml
+
+# built strategy binaries
+strategies/*/*
+!strategies/*/
+!strategies/*/*.
+examples/reference-standalone/reference-standalone
+bin/
+bin/
+examples/reference-standalone/reference-standalone
+**/reference-standalone
+
+# Build outputs
+/bin/
+examples/reference-standalone/reference-standalone

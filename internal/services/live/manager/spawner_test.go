@@ -44,9 +44,10 @@ var _ = Describe("ProcessSpawner", func() {
 		logger = &logging.NoOpLogger{}
 		spawner = manager.NewProcessSpawner(logger)
 
+		// No binary present → legacy plugin spawn path
 		testStrategy = &config.Strategy{
 			Name: "test-momentum",
-			Path: "./strategies/test-momentum",
+			Path: filepath.Join(tmpDir, "strategies", "test-momentum"),
 		}
 
 		ctx, cancel = context.WithCancel(context.Background())
@@ -57,18 +58,33 @@ var _ = Describe("ProcessSpawner", func() {
 	})
 
 	Describe("Spawn", func() {
-		It("should create a command with correct arguments", func() {
+		It("should fall back to legacy run-strategy when no binary exists", func() {
 			cmd, err := spawner.Spawn(ctx, testStrategy)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(cmd).NotTo(BeNil())
 
-			// Verify command path and args
-			Expect(cmd.Path).To(ContainSubstring("wisp"))
 			Expect(cmd.Args).To(ContainElements(
-				ContainSubstring("wisp"),
 				"run-strategy",
 				"--strategy",
 				"test-momentum",
+			))
+		})
+
+		It("should spawn standalone binary when present", func() {
+			// Create a fake strategy binary
+			binDir := filepath.Join(tmpDir, "strategies", "test-momentum")
+			Expect(os.MkdirAll(binDir, 0755)).To(Succeed())
+			binPath := filepath.Join(binDir, "test-momentum")
+			Expect(os.WriteFile(binPath, []byte("#!/bin/sh\n"), 0755)).To(Succeed())
+
+			strat := &config.Strategy{Name: "test-momentum", Path: binDir}
+			cmd, err := spawner.Spawn(ctx, strat)
+			Expect(err).NotTo(HaveOccurred())
+			absBin, _ := filepath.Abs(binPath)
+			Expect(cmd.Path).To(Equal(absBin))
+			Expect(cmd.Args).To(ContainElements(
+				"--config",
+				"--wisp",
 			))
 		})
 

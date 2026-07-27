@@ -49,7 +49,7 @@ func (s *liveService) ExecuteStrategy(ctx context.Context, strat *config.Strateg
 
 	s.logger.Info("Validated connector configs", "strategy", strat.Name, "connectors", len(connectorConfigs))
 
-	// 2. Compile strategy if needed
+	// 2. Compile strategy (standalone binary preferred when main.go is present)
 	if err := s.compile.CompileStrategy(strat.Path); err != nil {
 		return fmt.Errorf("failed to compile strategy: %w", err)
 	}

@@ -1,0 +1,9 @@
+# Global connector settings for live strategies.
+# Copy to wisp.yml and enable exchanges you use.
+connectors:
+  - name: hyperliquid
+    enabled: false
+    network: mainnet
+    credentials:
+      private_key: ""
+      account_address: ""

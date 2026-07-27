@@ -67,3 +67,11 @@ git commit -m "chore: bump sdk submodule"
 See [`examples/reference-standalone`](./examples/reference-standalone) for the blessed
 `StartStandalone` + `Wait` process host. Copy that pattern for private strategies.
 
+## Green path
+
+```bash
+make smoke   # builds CLI + examples/reference-standalone binary
+```
+
+TUI Start Live compiles `strategies/<name>/` as a **standalone binary** when `main.go` exists.
+
