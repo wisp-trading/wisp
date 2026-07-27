@@ -4,122 +4,96 @@ import (
 	"fmt"
 
 	tea "github.com/charmbracelet/bubbletea"
-	"github.com/charmbracelet/huh"
 	"github.com/wisp-trading/sdk/pkg/types/config"
 	"github.com/wisp-trading/wisp/internal/router"
+	"github.com/wisp-trading/wisp/internal/ui"
 )
 
-// DeleteConfirmModel represents the delete confirmation view using Huh
+// DeleteConfirmModel — simple Stay/Leave-style confirm (no huh).
 type DeleteConfirmModel struct {
-	form          *huh.Form
 	connectorName string
 	config        config.Configuration
 	router        router.Router
-	confirmed     bool
+	cursor        int // 0 cancel, 1 delete
 	err           error
 }
 
-// NewDeleteConfirmView creates a new delete confirmation view with Huh
 func NewDeleteConfirmView(
-	config config.Configuration,
+	cfg config.Configuration,
 	r router.Router,
 	connectorName string,
 ) tea.Model {
-	m := &DeleteConfirmModel{
-		config:        config,
+	return &DeleteConfirmModel{
+		config:        cfg,
 		router:        r,
 		connectorName: connectorName,
+		cursor:        0,
 	}
-
-	// Build the confirmation form
-	m.form = huh.NewForm(
-		huh.NewGroup(
-			huh.NewNote().
-				Title("🗑️  Delete Connector").
-				Description(fmt.Sprintf(
-					"Are you sure you want to delete connector **%s**?\n\n"+
-						"⚠️  This action cannot be undone.",
-					connectorName,
-				)),
-
-			huh.NewConfirm().
-				Title("Delete this connector?").
-				Description("This will permanently remove the connector configuration.").
-				Affirmative("Delete").
-				Negative("Cancel").
-				Value(&m.confirmed),
-		),
-	).WithTheme(huh.ThemeCharm())
-
-	return m
 }
 
-func (m *DeleteConfirmModel) Init() tea.Cmd {
-	if m.form != nil {
-		return m.form.Init()
-	}
-	return nil
-}
+func (m *DeleteConfirmModel) Init() tea.Cmd { return nil }
 
 func (m *DeleteConfirmModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
-	// Handle error state
 	if m.err != nil {
 		switch msg := msg.(type) {
 		case tea.KeyMsg:
-			if msg.String() == "q" || msg.String() == "esc" {
+			if msg.String() == "q" || msg.String() == "esc" || msg.String() == "enter" {
 				return m, m.router.Back()
 			}
 		}
 		return m, nil
 	}
 
-	// Handle Ctrl+C
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
-		if msg.String() == "ctrl+c" {
+		switch msg.String() {
+		case "left", "h", "up", "k":
+			m.cursor = 0
+		case "right", "l", "down", "j", "tab":
+			m.cursor = 1
+		case "esc", "q", "n", "N", "ctrl+x":
+			return m, m.router.Back()
+		case "y", "Y":
+			return m, m.doDelete()
+		case "enter", " ":
+			if m.cursor == 1 {
+				return m, m.doDelete()
+			}
+			return m, m.router.Back()
+		case "ctrl+c":
 			return m, tea.Quit
 		}
 	}
+	return m, nil
+}
 
-	// Update the form
-	var cmd tea.Cmd
-	form, cmd := m.form.Update(msg)
-	if f, ok := form.(*huh.Form); ok {
-		m.form = f
+func (m *DeleteConfirmModel) doDelete() tea.Cmd {
+	if err := m.config.RemoveConnector(m.connectorName); err != nil {
+		m.err = err
+		return nil
 	}
-
-	// Check if form is complete
-	if m.form.State == huh.StateCompleted {
-		if m.confirmed {
-			// User confirmed - delete the connector
-			if err := m.config.RemoveConnector(m.connectorName); err != nil {
-				m.err = err
-				return m, nil
-			}
-		}
-		// Go back to list (whether deleted or cancelled)
-		return m, m.router.Back()
-	}
-
-	// Check if form was aborted
-	if m.form.State == huh.StateAborted {
-		return m, m.router.Back()
-	}
-
-	return m, cmd
+	return m.router.Back()
 }
 
 func (m *DeleteConfirmModel) View() string {
 	if m.err != nil {
-		return fmt.Sprintf(
-			"❌ Error\n\n%s\n\nPress 'q' or 'Esc' to go back.",
-			m.err.Error(),
-		)
+		return ui.ErrorBoxStyle.Render("❌ "+m.err.Error()) + "\n\n" +
+			ui.MutedStyle.Render("q / Esc back")
 	}
-
-	if m.form == nil {
-		return "Loading..."
+	var cancel, del string
+	if m.cursor == 0 {
+		cancel = ui.SelectedItemStyle.Render("[ Cancel ]")
+		del = ui.MutedStyle.Render("  Delete  ")
+	} else {
+		cancel = ui.MutedStyle.Render("  Cancel  ")
+		del = ui.SelectedItemStyle.Render("[ Delete ]")
 	}
-
-	return m.form.View()
+	body := fmt.Sprintf(
+		"Delete connector %s?\n\nThis cannot be undone.\n\n%s   %s\n\n%s",
+		m.connectorName,
+		cancel,
+		del,
+		ui.MutedStyle.Render("←→ choose  ↵ confirm  y delete  n/Esc cancel"),
+	)
+	return ui.ErrorBoxStyle.Width(52).Render(body)
 }

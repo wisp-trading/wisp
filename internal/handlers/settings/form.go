@@ -4,48 +4,44 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/charmbracelet/bubbles/key"
+	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
-	"github.com/charmbracelet/huh"
 	"github.com/charmbracelet/lipgloss"
 	"github.com/donderom/bubblon"
-	"github.com/wisp-trading/connectors/pkg/connectors/types"
 	"github.com/wisp-trading/sdk/pkg/types/config"
 	"github.com/wisp-trading/sdk/pkg/types/connector"
 	"github.com/wisp-trading/wisp/internal/router"
 	"github.com/wisp-trading/wisp/internal/ui"
 )
 
-// ConnectorFormModel represents the connector detail/edit view
+// ConnectorFormModel: detail card + native Bubble Tea credential editor.
+// Fields from ConnectorService.GetRequiredCredentialFields (NewConfig).
 type ConnectorFormModel struct {
-	form          *huh.Form
 	connector     config.Connector
 	config        config.Configuration
 	connectorSvc  config.ConnectorService
 	router        router.Router
 	deleteFactory DeleteConfirmViewFactory
 	isEditMode    bool
-	originalName  string
 	err           error
 
-	// UI state
-	showingDetail bool // true = show detail view, false = show edit form
-	// confirmExit is a modal over the edit form (ctrl+x / esc).
+	showingDetail bool
 	confirmExit   bool
-	confirmCursor int // 0 = stay, 1 = leave
+	confirmCursor int // 0 stay, 1 leave
 
-	// Form field values
-	exchangeName       string
-	network            string
-	enabled            bool
-	credentials        map[string]string
-	credentialPointers map[string]*string // Pointers to actual form input values
-	assets             []string
+	exchangeName string
+	network      string
+	enabled      bool
+	fieldNames   []string
+	inputs       []textinput.Model
+	// focus: 0..n-1 inputs, n = enabled toggle, n+1 = Save button
+	focus int
+	width int
 }
 
-// NewConnectorFormView creates a new connector form view with Huh forms
+// NewConnectorFormView creates detail or add/edit credential screen.
 func NewConnectorFormView(
-	config config.Configuration,
+	cfg config.Configuration,
 	connectorSvc config.ConnectorService,
 	r router.Router,
 	deleteFactory DeleteConfirmViewFactory,
@@ -53,201 +49,101 @@ func NewConnectorFormView(
 	isEdit bool,
 ) tea.Model {
 	m := &ConnectorFormModel{
-		config:        config,
+		config:        cfg,
 		connectorSvc:  connectorSvc,
 		router:        r,
 		deleteFactory: deleteFactory,
 		isEditMode:    isEdit,
-		originalName:  connectorName,
-		credentials:   make(map[string]string),
 		enabled:       true,
+		network:       "mainnet",
+		width:         72,
 	}
 
 	if isEdit && connectorName != "" {
-		// Load existing connector
-		connectorList, err := config.GetConnectors()
+		list, err := cfg.GetConnectors()
 		if err != nil {
 			m.err = err
 			return m
 		}
-
-		for _, conn := range connectorList {
+		for _, conn := range list {
 			if conn.Name == connectorName {
 				m.connector = conn
 				m.exchangeName = conn.Name
 				m.network = conn.Network
+				if m.network == "" {
+					m.network = "mainnet"
+				}
 				m.enabled = conn.Enabled
-				m.assets = conn.Assets
-				m.credentials = conn.Credentials
 				break
 			}
 		}
-
-		if m.connector.Name == "" {
+		if m.exchangeName == "" {
 			m.err = fmt.Errorf("connector '%s' not found", connectorName)
 			return m
 		}
-
-		// Validate we have required data before showing detail view
-		if m.connector.Name == "" || m.exchangeName == "" {
-			m.err = fmt.Errorf("invalid connector data")
-			return m
-		}
-
-		// Show detail view first for editing
 		m.showingDetail = true
-	} else {
-		// Adding new - set exchange name if provided (from list selection)
-		if connectorName != "" {
-			m.exchangeName = connectorName
-		}
-
-		// Always go to form for new connectors (never detail view)
-		m.showingDetail = false
-		m.form = m.buildForm()
+		return m
 	}
 
+	m.exchangeName = connectorName
+	m.showingDetail = false
+	m.buildInputs()
 	return m
 }
 
-// buildForm creates the Huh form focused on credentials
-func (m *ConnectorFormModel) buildForm() *huh.Form {
-	var groups []*huh.Group
-
-	// If no exchange name set, show selector (this should rarely happen)
-	if m.exchangeName == "" {
-		availableExchanges := types.AllConnectors
-		exchangeOptions := make([]huh.Option[string], len(availableExchanges))
-		for i, ex := range availableExchanges {
-			exchangeOptions[i] = huh.NewOption(string(ex), string(ex))
+func (m *ConnectorFormModel) buildInputs() {
+	m.fieldNames = m.connectorSvc.GetRequiredCredentialFields(m.exchangeName)
+	m.inputs = make([]textinput.Model, 0, len(m.fieldNames))
+	creds := m.connector.Credentials
+	if creds == nil {
+		creds = map[string]string{}
+	}
+	for _, name := range m.fieldNames {
+		ti := textinput.New()
+		ti.Placeholder = formatFieldName(name)
+		ti.CharLimit = 512
+		ti.Width = 48
+		if isSecretField(name) {
+			ti.EchoMode = textinput.EchoPassword
+			ti.EchoCharacter = '•'
 		}
-
-		groups = append(groups, huh.NewGroup(
-			huh.NewSelect[string]().
-				Title("Select Exchange").
-				Options(exchangeOptions...).
-				Value(&m.exchangeName),
-		))
-	}
-
-	// Field names from connector NewConfig() via existing GetRequiredCredentialFields.
-	requiredFields := m.connectorSvc.GetRequiredCredentialFields(m.exchangeName)
-
-	var credFields []huh.Field
-	titleEmoji := "➕"
-	titleText := "Add Connector"
-	if m.isEditMode {
-		titleEmoji = "✏️"
-		titleText = "Edit Connector"
-	}
-
-	if len(requiredFields) == 0 {
-		// Do not invent api_key/api_secret — empty means unregistered or no fields.
-		m.credentialPointers = map[string]*string{}
-		credFields = append(credFields,
-			huh.NewNote().
-				Title(fmt.Sprintf("%s  %s", titleEmoji, m.exchangeName)).
-				Description("No credential fields discovered (connector missing or NewConfig empty)."),
-		)
-		return huh.NewForm(huh.NewGroup(credFields...)).WithTheme(huh.ThemeCharm())
-	}
-
-	credFields = append(credFields,
-		huh.NewNote().
-			Title(fmt.Sprintf("%s  %s", titleEmoji, m.exchangeName)).
-			Description(titleText),
-	)
-
-	credentialValues := make(map[string]*string)
-
-	for _, fieldName := range requiredFields {
-		// Allocate a string pointer for this field
-		fieldValue := ""
-
-		// If editing, pre-fill with existing value
-		if m.isEditMode && len(m.credentials) > 0 {
-			if existing, exists := m.credentials[fieldName]; exists {
-				fieldValue = existing
-			}
+		if v, ok := creds[name]; ok {
+			ti.SetValue(v)
 		}
-
-		// Store pointer to this field's value
-		credentialValues[fieldName] = &fieldValue
-
-		// Build description
-		fieldDesc := fmt.Sprintf("Enter your %s", formatFieldName(fieldName))
-		if m.isEditMode && len(m.credentials) > 0 {
-			if existing, exists := m.credentials[fieldName]; exists && len(existing) > 3 {
-				masked := existing[:3] + strings.Repeat("•", minInt(len(existing)-3, 20))
-				fieldDesc = fmt.Sprintf("Current: %s", masked)
-			}
-		}
-
-		// Determine echo mode (mask secrets/keys, show addresses plainly)
-		echoMode := huh.EchoModeNormal
-		if strings.Contains(strings.ToLower(fieldName), "key") ||
-			strings.Contains(strings.ToLower(fieldName), "secret") {
-			echoMode = huh.EchoModePassword
-		}
-
-		credFields = append(credFields,
-			huh.NewInput().
-				Title(formatFieldName(fieldName)).
-				Description(fieldDesc).
-				Placeholder("...").
-				EchoMode(echoMode).
-				Value(credentialValues[fieldName]),
-		)
+		m.inputs = append(m.inputs, ti)
 	}
-
-	// After form completes, we'll copy values from credentialValues to m.credentials
-	// Store the map so we can access it in Update
-	m.credentialPointers = credentialValues
-
-	// Only show enable toggle if editing (less prominent)
-	if m.isEditMode {
-		credFields = append(credFields,
-			huh.NewConfirm().
-				Title("Enabled?").
-				Value(&m.enabled),
-		)
+	m.focus = 0
+	m.blurAll()
+	if len(m.inputs) > 0 {
+		m.inputs[0].Focus()
 	}
-
-	groups = append(groups, huh.NewGroup(credFields...))
-
-	// Set defaults
-	if m.network == "" {
-		m.network = "mainnet" // Default, but we don't ask about it
-	}
-	if !m.isEditMode {
-		m.enabled = true // Default to enabled for new connectors
-	}
-
-	km := huh.NewDefaultKeyMap()
-	// Esc / ctrl+x abort the form (default Quit is only ctrl+c).
-	// Parent model intercepts these first for a confirm dialog when possible.
-	km.Quit = key.NewBinding(
-		key.WithKeys("ctrl+x", "ctrl+c", "esc"),
-		key.WithHelp("ctrl+x", "cancel"),
-	)
-	return huh.NewForm(groups...).
-		WithTheme(huh.ThemeCharm()).
-		WithShowHelp(true).
-		WithShowErrors(true).
-		WithKeyMap(km)
 }
 
-// minInt returns the minimum of two ints
-func minInt(a, b int) int {
-	if a < b {
-		return a
+func (m *ConnectorFormModel) blurAll() {
+	for i := range m.inputs {
+		m.inputs[i].Blur()
 	}
-	return b
 }
 
-// formatFieldName converts snake_case to Title Case for display
+func (m *ConnectorFormModel) focusIndex(i int) {
+	m.blurAll()
+	m.focus = i
+	if i >= 0 && i < len(m.inputs) {
+		m.inputs[i].Focus()
+	}
+}
+
+func (m *ConnectorFormModel) maxFocus() int {
+	// fields + enabled + save
+	return len(m.inputs) + 1
+}
+
+func isSecretField(name string) bool {
+	n := strings.ToLower(name)
+	return strings.Contains(n, "key") || strings.Contains(n, "secret") || strings.Contains(n, "password") || strings.Contains(n, "passphrase")
+}
+
 func formatFieldName(field string) string {
-	// Replace underscores with spaces and capitalize each word
 	parts := strings.Split(field, "_")
 	for i, part := range parts {
 		if len(part) > 0 {
@@ -257,15 +153,31 @@ func formatFieldName(field string) string {
 	return strings.Join(parts, " ")
 }
 
+func minInt(a, b int) int {
+	if a < b {
+		return a
+	}
+	return b
+}
+
 func (m *ConnectorFormModel) Init() tea.Cmd {
-	if m.form != nil {
-		return m.form.Init()
+	if !m.showingDetail && len(m.inputs) > 0 {
+		return textinput.Blink
 	}
 	return nil
 }
 
 func (m *ConnectorFormModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
-	// Error banner
+	if msg, ok := msg.(tea.WindowSizeMsg); ok {
+		m.width = msg.Width
+		if m.width > 80 {
+			m.width = 80
+		}
+		if m.width < 40 {
+			m.width = 40
+		}
+	}
+
 	if m.err != nil {
 		switch msg := msg.(type) {
 		case tea.KeyMsg:
@@ -280,92 +192,112 @@ func (m *ConnectorFormModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m, nil
 	}
 
-	// Modal: confirm discard / leave edit form
 	if m.confirmExit {
 		return m.updateConfirmExit(msg)
 	}
 
-	// Detail card
 	if m.showingDetail {
-		switch msg := msg.(type) {
-		case tea.KeyMsg:
-			switch msg.String() {
-			case "q", "esc", "ctrl+x", "backspace":
-				return m, m.router.Back()
-			case "e", "enter":
-				m.showingDetail = false
-				m.form = m.buildForm()
-				return m, m.form.Init()
-			case " ":
-				m.connector.Enabled = !m.connector.Enabled
-				if err := m.config.UpdateConnector(m.connector); err != nil {
-					m.err = err
-					return m, nil
-				}
-				return m, nil
-			case "d":
-				deleteView := m.deleteFactory(m.connector.Name)
-				return m, bubblon.Open(deleteView)
-			}
-		}
-		return m, nil
+		return m.updateDetail(msg)
 	}
 
-	// Edit form: intercept leave keys before huh swallows them
+	return m.updateEditor(msg)
+}
+
+func (m *ConnectorFormModel) updateDetail(msg tea.Msg) (tea.Model, tea.Cmd) {
+	switch msg := msg.(type) {
+	case tea.KeyMsg:
+		switch msg.String() {
+		case "q", "esc", "ctrl+x", "backspace":
+			return m, m.router.Back()
+		case "e", "enter":
+			m.showingDetail = false
+			m.buildInputs()
+			return m, textinput.Blink
+		case " ":
+			m.connector.Enabled = !m.connector.Enabled
+			if err := m.config.UpdateConnector(m.connector); err != nil {
+				m.err = err
+			}
+			return m, nil
+		case "d":
+			return m, bubblon.Open(m.deleteFactory(m.connector.Name))
+		}
+	}
+	return m, nil
+}
+
+func (m *ConnectorFormModel) updateEditor(msg tea.Msg) (tea.Model, tea.Cmd) {
 	if km, ok := msg.(tea.KeyMsg); ok {
 		switch km.String() {
 		case "ctrl+x", "esc":
 			m.confirmExit = true
-			m.confirmCursor = 0 // default Stay
+			m.confirmCursor = 0
 			return m, nil
 		case "ctrl+c":
-			// Same as leave — confirm first (don't hard-quit mid-edit)
 			m.confirmExit = true
 			m.confirmCursor = 0
 			return m, nil
-		}
-	}
-
-	if m.form == nil {
-		return m, nil
-	}
-
-	var cmd tea.Cmd
-	form, cmd := m.form.Update(msg)
-	if f, ok := form.(*huh.Form); ok {
-		m.form = f
-	}
-
-	if m.form.State == huh.StateCompleted {
-		for fieldName, valuePtr := range m.credentialPointers {
-			if valuePtr != nil {
-				m.credentials[fieldName] = *valuePtr
+		case "tab", "down":
+			next := m.focus + 1
+			if next > m.maxFocus() {
+				next = 0
 			}
+			m.focusIndex(next)
+			return m, textinput.Blink
+		case "shift+tab", "up":
+			prev := m.focus - 1
+			if prev < 0 {
+				prev = m.maxFocus()
+			}
+			m.focusIndex(prev)
+			return m, textinput.Blink
+		case "enter":
+			switch {
+			case m.focus == len(m.inputs):
+				m.enabled = !m.enabled
+				return m, nil
+			case m.focus == m.maxFocus():
+				return m, m.trySave()
+			case m.focus < len(m.inputs):
+				next := m.focus + 1
+				m.focusIndex(next)
+				return m, textinput.Blink
+			}
+		case " ":
+			if m.focus == len(m.inputs) {
+				m.enabled = !m.enabled
+				return m, nil
+			}
+			// else space goes to textinput
 		}
-		m.connector = config.Connector{
-			Name:        m.exchangeName,
-			Network:     m.network,
-			Enabled:     m.enabled,
-			Assets:      m.assets,
-			Credentials: m.credentials,
-		}
-		if err := m.saveConnector(); err != nil {
-			m.err = fmt.Errorf("%w\n\nEsc: fix form  ·  Ctrl+X: leave without saving", err)
-			m.form.State = huh.StateNormal
-			return m, nil
-		}
-		return m, m.router.Back()
 	}
 
-	// huh Quit (if it still fires) → same confirm
-	if m.form.State == huh.StateAborted {
-		m.form.State = huh.StateNormal
-		m.confirmExit = true
-		m.confirmCursor = 0
-		return m, nil
+	// Forward to focused text input
+	if m.focus >= 0 && m.focus < len(m.inputs) {
+		var cmd tea.Cmd
+		m.inputs[m.focus], cmd = m.inputs[m.focus].Update(msg)
+		return m, cmd
 	}
+	return m, nil
+}
 
-	return m, cmd
+func (m *ConnectorFormModel) trySave() tea.Cmd {
+	creds := make(map[string]string, len(m.fieldNames))
+	for i, name := range m.fieldNames {
+		creds[name] = strings.TrimSpace(m.inputs[i].Value())
+	}
+	m.connector = config.Connector{
+		Name:        m.exchangeName,
+		Network:     m.network,
+		Enabled:     m.enabled,
+		Assets:      m.connector.Assets,
+		Credentials: creds,
+	}
+	if err := m.saveConnector(); err != nil {
+		m.err = fmt.Errorf("%w\n\nEsc: fix form  ·  Ctrl+X: leave without saving", err)
+		return nil
+	}
+	return m.router.Back()
 }
 
 func (m *ConnectorFormModel) updateConfirmExit(msg tea.Msg) (tea.Model, tea.Cmd) {
@@ -381,12 +313,11 @@ func (m *ConnectorFormModel) updateConfirmExit(msg tea.Msg) (tea.Model, tea.Cmd)
 				m.confirmExit = false
 				return m, m.leaveForm()
 			}
-			// Stay — resume form
 			m.confirmExit = false
-			return m, nil
+			return m, textinput.Blink
 		case "n", "N", "esc":
 			m.confirmExit = false
-			return m, nil
+			return m, textinput.Blink
 		case "y", "Y", "ctrl+x":
 			m.confirmExit = false
 			return m, m.leaveForm()
@@ -395,34 +326,30 @@ func (m *ConnectorFormModel) updateConfirmExit(msg tea.Msg) (tea.Model, tea.Cmd)
 	return m, nil
 }
 
-// leaveForm exits the form: detail view if editing, list if adding.
 func (m *ConnectorFormModel) leaveForm() tea.Cmd {
 	m.confirmExit = false
 	m.err = nil
 	if m.isEditMode {
 		m.showingDetail = true
-		m.form = nil
+		m.inputs = nil
+		m.fieldNames = nil
 		return nil
 	}
 	return m.router.Back()
 }
 
 func (m *ConnectorFormModel) saveConnector() error {
-	// Required keys from the same discovery path as the form.
 	for _, key := range m.connectorSvc.GetRequiredCredentialFields(m.connector.Name) {
 		if strings.TrimSpace(m.connector.Credentials[key]) == "" {
 			return fmt.Errorf("credential '%s' cannot be empty", formatFieldName(key))
 		}
 	}
-
-	// Full connector validation (MapToSDKConfig + Config.Validate).
 	if err := m.connectorSvc.ValidateConnectorConfig(
 		connector.ExchangeName(m.connector.Name),
 		m.connector,
 	); err != nil {
 		return err
 	}
-
 	if m.isEditMode {
 		return m.config.UpdateConnector(m.connector)
 	}
@@ -434,21 +361,66 @@ func (m *ConnectorFormModel) View() string {
 		return ui.ErrorBoxStyle.Render("❌ "+m.err.Error()) + "\n\n" +
 			ui.MutedStyle.Render("Esc fix  ·  Ctrl+X leave")
 	}
-
 	if m.showingDetail {
 		return m.renderDetailView()
 	}
-
-	base := "Loading..."
-	if m.form != nil {
-		base = m.form.View()
-	}
-	base += "\n" + ui.MutedStyle.Render("Tab next field  ·  Enter submit  ·  Ctrl+X / Esc cancel")
-
+	base := m.renderEditor()
 	if m.confirmExit {
 		return m.renderConfirmExit(base)
 	}
 	return base
+}
+
+func (m *ConnectorFormModel) renderEditor() string {
+	var b strings.Builder
+	title := "Add exchange keys"
+	if m.isEditMode {
+		title = "Edit exchange keys"
+	}
+	b.WriteString(ui.TitleStyle.Render(fmt.Sprintf("✏️  %s — %s", title, m.exchangeName)))
+	b.WriteString("\n")
+	b.WriteString(ui.MutedStyle.Render("Saved to ~/.wisp/connectors.yml"))
+	b.WriteString("\n\n")
+
+	if len(m.fieldNames) == 0 {
+		b.WriteString(ui.MutedStyle.Render("No credential fields for this exchange (not registered?)."))
+		b.WriteString("\n\n")
+	}
+
+	for i, name := range m.fieldNames {
+		label := formatFieldName(name)
+		if m.focus == i {
+			b.WriteString(ui.SelectedItemStyle.Render("▶ " + label))
+		} else {
+			b.WriteString(ui.LabelStyle.Render("  " + label))
+		}
+		b.WriteString("\n  ")
+		b.WriteString(m.inputs[i].View())
+		b.WriteString("\n\n")
+	}
+
+	// Enabled row
+	enLabel := "Enabled"
+	enVal := "No"
+	if m.enabled {
+		enVal = "Yes"
+	}
+	if m.focus == len(m.inputs) {
+		b.WriteString(ui.SelectedItemStyle.Render(fmt.Sprintf("▶ %s: [%s]  (space/enter toggle)", enLabel, enVal)))
+	} else {
+		b.WriteString(ui.ItemStyle.Render(fmt.Sprintf("  %s: [%s]", enLabel, enVal)))
+	}
+	b.WriteString("\n\n")
+
+	// Save
+	if m.focus == m.maxFocus() {
+		b.WriteString(ui.SelectedItemStyle.Render("▶ [ Save ]"))
+	} else {
+		b.WriteString(ui.ItemStyle.Render("  [ Save ]"))
+	}
+	b.WriteString("\n\n")
+	b.WriteString(ui.MutedStyle.Render("↑↓/Tab fields  ·  Enter next/save  ·  Ctrl+X / Esc cancel"))
+	return ui.MenuBoxStyle.Width(m.width).Render("\n" + b.String() + "\n")
 }
 
 func (m *ConnectorFormModel) renderConfirmExit(under string) string {
@@ -469,79 +441,53 @@ func (m *ConnectorFormModel) renderConfirmExit(under string) string {
 	return under + "\n\n" + modal
 }
 
-// renderDetailView shows a beautiful detail card for the connector
 func (m *ConnectorFormModel) renderDetailView() string {
-	// Guard: should never be here without a connector name
 	if m.connector.Name == "" {
-		errorBox := ui.ErrorBoxStyle.Render("❌ No connector loaded\n\nPress 'q' to go back")
-		return errorBox
+		return ui.ErrorBoxStyle.Render("❌ No connector loaded\n\nPress q to go back")
 	}
-
 	var content strings.Builder
-
-	// Title
-	title := ui.TitleStyle.Render("⚙️  " + m.connector.Name)
-	content.WriteString(title)
+	content.WriteString(ui.TitleStyle.Render("⚙️  " + m.connector.Name))
 	content.WriteString("\n\n")
-
-	// Status badge
-	var statusBadge string
 	if m.connector.Enabled {
-		statusBadge = ui.StatusReadyStyle.Render("● ENABLED")
+		content.WriteString(ui.StatusReadyStyle.Render("● ENABLED"))
 	} else {
-		statusBadge = ui.StatusDisabledStyle.Render("○ DISABLED")
+		content.WriteString(ui.StatusDisabledStyle.Render("○ DISABLED"))
 	}
-	content.WriteString(statusBadge)
 	content.WriteString("\n\n")
 
-	// Detail box
 	var details strings.Builder
-
-	// Exchange type
 	details.WriteString(ui.LabelStyle.Render("Exchange:"))
 	details.WriteString(" ")
 	details.WriteString(ui.ValueStyle.Render(m.connector.Name))
 	details.WriteString("\n\n")
-
-	// Network
 	details.WriteString(ui.LabelStyle.Render("Network:"))
 	details.WriteString(" ")
-	networkValue := m.connector.Network
-	if networkValue == "" {
-		networkValue = "mainnet"
+	nv := m.connector.Network
+	if nv == "" {
+		nv = "mainnet"
 	}
 	var networkStyle lipgloss.Style
-	if networkValue == "testnet" {
+	if nv == "testnet" {
 		networkStyle = ui.NetworkBadgeWarningStyle.Bold(true)
 	} else {
 		networkStyle = ui.ValueStyle
 	}
-	details.WriteString(networkStyle.Render(networkValue))
+	details.WriteString(networkStyle.Render(nv))
 	details.WriteString("\n\n")
-
-	// Credentials section
 	details.WriteString(ui.SectionHeaderStyle.Render("Credentials"))
 	details.WriteString("\n\n")
 
-	// Same discovery path as the edit form (NewConfig JSON keys).
-	requiredFields := m.connectorSvc.GetRequiredCredentialFields(m.connector.Name)
-
-	// Show each credential field dynamically
-	for _, fieldName := range requiredFields {
-		fieldLabel := formatFieldName(fieldName) + ":"
-		details.WriteString(ui.LabelStyle.Render(fieldLabel))
+	for _, fieldName := range m.connectorSvc.GetRequiredCredentialFields(m.connector.Name) {
+		details.WriteString(ui.LabelStyle.Render(formatFieldName(fieldName) + ":"))
 		details.WriteString(" ")
-
 		if value, exists := m.connector.Credentials[fieldName]; exists && len(value) > 3 {
-			// Mask private keys, show addresses plainly
-			if strings.Contains(strings.ToLower(fieldName), "key") ||
-				strings.Contains(strings.ToLower(fieldName), "secret") {
-				masked := value[:3] + strings.Repeat("•", minInt(len(value)-3, 20))
-				details.WriteString(ui.StatusReadyStyle.Render(masked))
+			if isSecretField(fieldName) {
+				details.WriteString(ui.StatusReadyStyle.Render(value[:3] + strings.Repeat("•", minInt(len(value)-3, 20))))
 			} else {
-				// Show addresses/usernames plainly
 				details.WriteString(ui.StatusReadyStyle.Render(value))
 			}
+		} else if value, exists := m.connector.Credentials[fieldName]; exists && value != "" {
+			details.WriteString(ui.StatusReadyStyle.Render("set"))
 		} else {
 			details.WriteString(ui.StatusDangerStyle.Render("Not set"))
 		}
@@ -550,16 +496,13 @@ func (m *ConnectorFormModel) renderDetailView() string {
 
 	content.WriteString(ui.DetailBoxStyle.Render(details.String()))
 	content.WriteString("\n\n")
-
-	// Help text
-	help := fmt.Sprintf(
-		"%s Edit  %s Toggle  %s Delete  %s Back",
-		ui.KeyHintStyle.Render("e"),
-		ui.KeyHintStyle.Render("Space"),
-		ui.KeyHintStyle.Render("d"),
-		ui.KeyHintStyle.Render("q"),
-	)
-	content.WriteString(ui.HelpStyle.Padding(0).Render(help))
-
+	content.WriteString(ui.HelpStyle.Padding(0).Render(
+		fmt.Sprintf("%s Edit  %s Toggle  %s Delete  %s Back",
+			ui.KeyHintStyle.Render("e/↵"),
+			ui.KeyHintStyle.Render("Space"),
+			ui.KeyHintStyle.Render("d"),
+			ui.KeyHintStyle.Render("q/Esc"),
+		),
+	))
 	return content.String()
 }

@@ -42,9 +42,8 @@ func (fieldSvc) GetRequiredCredentialFields(string) []string {
 
 func TestFormCtrlXShowsConfirmThenLeave(t *testing.T) {
 	r := &countRouter{}
-	cfg := &stubConfig{}
 	m := &ConnectorFormModel{
-		config:       cfg,
+		config:       &stubConfig{},
 		connectorSvc: fieldSvc{},
 		router:       r,
 		isEditMode:   true,
@@ -59,16 +58,14 @@ func TestFormCtrlXShowsConfirmThenLeave(t *testing.T) {
 		},
 		showingDetail: false,
 	}
-	m.form = m.buildForm()
+	m.buildInputs()
 
-	// ctrl+x → confirm modal
 	updated, _ := m.Update(tea.KeyMsg{Type: tea.KeyCtrlX})
 	m = updated.(*ConnectorFormModel)
 	if !m.confirmExit {
 		t.Fatal("expected confirmExit after ctrl+x")
 	}
 
-	// choose Leave
 	m.confirmCursor = 1
 	updated, _ = m.Update(tea.KeyMsg{Type: tea.KeyEnter})
 	m = updated.(*ConnectorFormModel)
@@ -93,7 +90,7 @@ func TestFormConfirmStayKeepsForm(t *testing.T) {
 		confirmCursor: 0,
 		connector:     config.Connector{Name: "hyperliquid"},
 	}
-	m.form = m.buildForm()
+	m.buildInputs()
 	updated, _ := m.Update(tea.KeyMsg{Type: tea.KeyEnter})
 	m = updated.(*ConnectorFormModel)
 	if m.confirmExit {
@@ -116,8 +113,28 @@ func TestNewConnectorLeaveGoesBack(t *testing.T) {
 		confirmExit:   true,
 		confirmCursor: 1,
 	}
+	m.buildInputs()
 	_, _ = m.Update(tea.KeyMsg{Type: tea.KeyEnter})
 	if r.backs != 1 {
 		t.Fatalf("expected Back() once, got %d", r.backs)
+	}
+}
+
+func TestTabMovesFocus(t *testing.T) {
+	m := &ConnectorFormModel{
+		config:       &stubConfig{},
+		connectorSvc: fieldSvc{},
+		router:       &countRouter{},
+		exchangeName: "hyperliquid",
+		isEditMode:   false,
+	}
+	m.buildInputs()
+	if m.focus != 0 {
+		t.Fatalf("focus=%d", m.focus)
+	}
+	updated, _ := m.Update(tea.KeyMsg{Type: tea.KeyTab})
+	m = updated.(*ConnectorFormModel)
+	if m.focus != 1 {
+		t.Fatalf("after tab focus=%d want 1", m.focus)
 	}
 }

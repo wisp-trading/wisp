@@ -56,6 +56,7 @@ func TestSaveConnector_RequiresDiscoveredFields(t *testing.T) {
 	m := &ConnectorFormModel{
 		config:       cfg,
 		connectorSvc: svc,
+		exchangeName: "hyperliquid",
 		connector: config.Connector{
 			Name:        "hyperliquid",
 			Enabled:     true,
