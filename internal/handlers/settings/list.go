@@ -123,9 +123,11 @@ func (m *ConnectorListModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 
 		switch msg.String() {
-		case "ctrl+c", "q", "esc", "ctrl+x", "backspace":
-			// Always allow leaving Settings → main menu
+		case "q", "esc":
+			// Deliberate leave only — not Backspace/Ctrl+X (form-cancel keys).
 			return m, m.router.Back()
+		case "ctrl+c":
+			return m, tea.Quit
 		case "up", "k":
 			if m.cursor > 0 {
 				m.cursor--
