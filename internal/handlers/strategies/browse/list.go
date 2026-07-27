@@ -77,7 +77,12 @@ func (m *strategyListView) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 func (m *strategyListView) View() string {
 	if len(m.strategies) == 0 {
-		return ui.TitleStyle.Render("STRATEGIES") + "\n\n" + ui.SubtitleStyle.Render("No strategies found. Create a new one to get started.")
+		return ui.TitleStyle.Render("STRATEGIES") + "\n\n" +
+			ui.SubtitleStyle.Render("No strategies in ./strategies.") + "\n\n" +
+			ui.MutedStyle.Render("Create New Project from the menu, or:") + "\n" +
+			ui.MutedStyle.Render("  wisp init my-bot") + "\n\n" +
+			ui.MutedStyle.Render("Then: Settings → keys · here → Start Live · Monitor → Stop") + "\n\n" +
+			ui.MutedStyle.Render("q Back")
 	}
 
 	var content string

@@ -2,15 +2,18 @@ package handlers
 
 import (
 	tea "github.com/charmbracelet/bubbletea"
+	"github.com/donderom/bubblon"
 	"github.com/wisp-trading/wisp/internal/router"
+	"github.com/wisp-trading/wisp/internal/setup/types"
 	"github.com/wisp-trading/wisp/internal/ui"
 )
 
 // mainMenuModel represents the main menu TUI
 type mainMenuModel struct {
-	choices []string
-	cursor  int
-	router  router.Router
+	choices  []string
+	cursor   int
+	router   router.Router
+	scaffold types.ScaffoldService
 }
 
 func (m mainMenuModel) Init() tea.Cmd {
@@ -32,23 +35,17 @@ func (m mainMenuModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.cursor++
 			}
 		case "enter":
-			// Navigate using the router instead of quitting
 			switch m.choices[m.cursor] {
 			case "Strategies":
-				return m, func() tea.Msg {
-					return router.NavigateMsg{Route: router.RouteStrategyList}
-				}
+				return m, m.router.NavigateTo(router.RouteStrategyList)
 			case "Monitor":
-				return m, func() tea.Msg {
-					return router.NavigateMsg{Route: router.RouteMonitor}
-				}
+				return m, m.router.NavigateTo(router.RouteMonitor)
 			case "Settings":
-				return m, func() tea.Msg {
-					return router.NavigateMsg{Route: router.RouteSettingsList}
-				}
-			case "Help", "Create New Project":
-				// TODO: Register these routes when implemented
-				return m, nil
+				return m, m.router.NavigateTo(router.RouteSettingsList)
+			case "Create New Project":
+				return m, bubblon.Open(NewProjectCreateView(m.router, m.scaffold))
+			case "Help":
+				return m, bubblon.Open(NewHelpView(m.router))
 			}
 		}
 	}
@@ -56,13 +53,13 @@ func (m mainMenuModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 }
 
 func (m mainMenuModel) View() string {
-	title := ui.TitleCenteredStyle.Render("WISP CLI v0.1.0")
+	title := ui.TitleCenteredStyle.Render("WISP")
 
 	var s string
 	s += "\n" + title + "\n\n"
-	s += ui.MutedStyle.Render("What would you like to do?") + "\n\n"
+	s += ui.MutedStyle.Render("Project · Keys · Live strategies") + "\n\n"
 
-	icons := []string{"📂", "📊", "⚙️", "ℹ️", "🆕"}
+	icons := []string{"📂", "📊", "⚙️", "🆕", "ℹ️"}
 
 	for i, choice := range m.choices {
 		cursor := "  "
@@ -74,7 +71,7 @@ func (m mainMenuModel) View() string {
 		}
 	}
 
-	s += "\n" + ui.MutedStyle.Render("↑↓/jk Navigate  ↵ Select  q Quit")
+	s += "\n" + ui.MutedStyle.Render("↑↓ Navigate  ↵ Select  q Quit")
 
 	return ui.MenuBoxStyle.Render(s)
 }
