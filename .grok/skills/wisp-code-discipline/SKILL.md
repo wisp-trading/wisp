@@ -80,11 +80,11 @@ zombies before adding markets. Mocks: mockery only.
 — clone that tree; domain Module Provides `facade.New*`; add Module to `pkg/modules.go`.
 
 **Done:** instruments YAML removed; hard-fail unregistered connectors at init;
-spot/perp pair watchlist + asset load shared via `markets/base/watchlist`;
-`package pkg` (was packages).
+spot/perp pair shell shared via `markets/base/{watchlist,analytics,universe,views,activity}`;
+`package pkg` (was packages); dead spot/perp `config/` packages removed.
 
-**Still open (low priority):** dual analytics packages; options-specific copy;
-optional `pkg/testing` trim; deeper domain shell DRY only when adding markets.
+**Still open:** options/prediction-specific shells (different keys); signal/executor
+domain methods (leverage/funding) stay per-domain; optional `pkg/testing` trim.
 
 **Process:** no release tags unless ship-worthy change.
 
