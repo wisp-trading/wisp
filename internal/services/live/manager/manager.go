@@ -4,72 +4,66 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"os/exec"
 	"sync"
-	"syscall"
 	"time"
 
 	"github.com/google/uuid"
 	"github.com/wisp-trading/sdk/pkg/types/config"
 	"github.com/wisp-trading/sdk/pkg/types/logging"
+	"github.com/wisp-trading/sdk/pkg/types/monitoring"
 	"github.com/wisp-trading/wisp/pkg/live"
 )
 
+// DefaultStopTimeout is how long Stop waits after a graceful request before SIGKILL.
+const DefaultStopTimeout = 10 * time.Second
+
 type instanceManager struct {
-	mu          sync.RWMutex
-	instances   map[string]*live.Instance
-	stateStore  live.StateStore
-	spawner     live.ProcessSpawner
-	logger      logging.ApplicationLogger
-	monitorDone chan struct{}
+	mu         sync.RWMutex
+	instances  map[string]*live.Instance
+	stateStore live.StateStore
+	spawner    live.ProcessSpawner
+	logger     logging.ApplicationLogger
+	querier    monitoring.ViewQuerier // optional: HTTP /shutdown when available
 }
 
-// NewInstanceManager creates a new instance manager
+// NewInstanceManager creates a new instance manager.
+// querier may be nil; when set, Stop prefers HTTP /shutdown before OS signals.
 func NewInstanceManager(
 	stateStore live.StateStore,
 	spawner live.ProcessSpawner,
 	logger logging.ApplicationLogger,
+	querier monitoring.ViewQuerier,
 ) live.InstanceManager {
 	return &instanceManager{
-		instances:   make(map[string]*live.Instance),
-		stateStore:  stateStore,
-		spawner:     spawner,
-		logger:      logger,
-		monitorDone: make(chan struct{}),
+		instances:  make(map[string]*live.Instance),
+		stateStore: stateStore,
+		spawner:    spawner,
+		logger:     logger,
+		querier:    querier,
 	}
 }
 
-// Start spawns a new strategy instance
+// Start spawns a new strategy instance.
 func (im *instanceManager) Start(ctx context.Context, strategy *config.Strategy, frameworkRoot string) (*live.Instance, error) {
 	im.mu.Lock()
 	defer im.mu.Unlock()
 
-	// Check if already running - verify process is actually alive
 	for id, inst := range im.instances {
 		if inst.StrategyName == strategy.Name && inst.Status == live.StatusRunning {
-			// Verify process is actually alive
-			if inst.PID > 0 {
-				process, err := os.FindProcess(inst.PID)
-				if err == nil {
-					// Try to signal with signal 0 to check if process exists
-					if err := process.Signal(syscall.Signal(0)); err == nil {
-						// Process is alive - really running
-						return nil, fmt.Errorf("strategy '%s' already running", strategy.Name)
-					}
-				}
+			if processAlive(inst.PID) {
+				return nil, fmt.Errorf("strategy '%s' already running", strategy.Name)
 			}
-
 			inst.Status = live.StatusStopped
 			delete(im.instances, id)
 		}
 	}
 
-	// Spawn process
 	cmd, err := im.spawner.Spawn(ctx, strategy)
 	if err != nil {
 		return nil, fmt.Errorf("failed to spawn process: %w", err)
 	}
 
-	// Create instance
 	instCtx, cancel := context.WithCancel(ctx)
 	instance := &live.Instance{
 		ID:              uuid.New().String(),
@@ -84,27 +78,22 @@ func (im *instanceManager) Start(ctx context.Context, strategy *config.Strategy,
 		Cmd:             cmd,
 	}
 
-	// Start process
 	if err := cmd.Start(); err != nil {
 		cancel()
 		return nil, fmt.Errorf("failed to start process: %w", err)
 	}
 
 	instance.PID = cmd.Process.Pid
-
-	// Track instance
 	im.instances[instance.ID] = instance
-
-	// Monitor process in background
 	go im.monitorProcess(instance)
-
-	// Save state
 	_ = im.saveStateLocked()
 
 	return instance, nil
 }
 
-// Stop gracefully terminates an instance
+// Stop gracefully terminates an instance.
+// Order: HTTP /shutdown (if available) → wait for exit → SIGKILL last resort.
+// Falls back to SIGINT when HTTP is unavailable, then same wait/kill.
 func (im *instanceManager) Stop(instanceID string) error {
 	im.mu.Lock()
 	instance, exists := im.instances[instanceID]
@@ -112,73 +101,44 @@ func (im *instanceManager) Stop(instanceID string) error {
 		im.mu.Unlock()
 		return fmt.Errorf("instance not found: %s", instanceID)
 	}
+	strategyName := instance.StrategyName
+	pid := instance.PID
+	cmd := instance.Cmd
+	if instance.Cancel != nil {
+		instance.Cancel()
+	}
 	im.mu.Unlock()
 
-	instance.Cancel()
-
-	// Get process handle - either from Cmd (if we spawned it) or by PID (if reattached)
-	var process *os.Process
-	var err error
-
-	if instance.Cmd != nil && instance.Cmd.Process != nil {
-		// We spawned this process - use the Cmd's process handle
-		process = instance.Cmd.Process
-	} else if instance.PID > 0 {
-		// We reattached to this process - find it by PID
-		process, err = os.FindProcess(instance.PID)
-		if err != nil {
-			return fmt.Errorf("failed to find process: %w", err)
-		}
-	} else {
-		return fmt.Errorf("instance has no valid process reference")
-	}
-
-	// Send SIGTERM
-	if err := process.Signal(os.Interrupt); err != nil {
-		return fmt.Errorf("failed to signal process: %w", err)
-	}
-
-	// Wait for graceful exit with timeout
-	done := make(chan error, 1)
-	go func() {
-		if instance.Cmd != nil {
-			// If we have Cmd, use Wait() which is cleaner
-			done <- instance.Cmd.Wait()
+	httpOK := false
+	if im.querier != nil {
+		if err := im.querier.Shutdown(strategyName); err != nil {
+			im.logger.Warn("HTTP shutdown request failed, will signal process",
+				"strategy", strategyName, "error", err)
 		} else {
-			// Otherwise poll for process exit
-			for i := 0; i < 100; i++ { // 10 seconds (100 * 100ms)
-				time.Sleep(100 * time.Millisecond)
-				// Try to signal with signal 0 to check if process exists
-				if err := process.Signal(syscall.Signal(0)); err != nil {
-					// Process is gone
-					done <- nil
-					return
-				}
-			}
-			done <- fmt.Errorf("timeout waiting for process to exit")
+			httpOK = true
+			im.logger.Info("Sent HTTP /shutdown", "strategy", strategyName, "id", instanceID)
 		}
-	}()
-
-	select {
-	case <-time.After(10 * time.Second):
-		// Force kill if not exited
-		im.logger.Warn("Graceful stop timeout, force killing", "instance", instanceID)
-		if err := process.Kill(); err != nil {
-			return fmt.Errorf("failed to kill process: %w", err)
-		}
-	case <-done:
 	}
 
-	im.mu.Lock()
-	instance.Status = live.StatusStopped
-	instance.PID = 0
-	_ = im.saveStateLocked()
-	im.mu.Unlock()
+	if !httpOK {
+		if err := signalProcess(cmd, pid, os.Interrupt); err != nil {
+			im.logger.Warn("Failed to signal process", "pid", pid, "error", err)
+		}
+	}
 
+	if err := waitForExit(cmd, pid, DefaultStopTimeout); err != nil {
+		im.logger.Warn("Graceful stop timeout, force killing", "instance", instanceID, "pid", pid)
+		if killErr := killProcess(cmd, pid); killErr != nil {
+			return fmt.Errorf("failed to kill process after timeout: %w", killErr)
+		}
+		_ = waitForExit(cmd, pid, 2*time.Second)
+	}
+
+	im.markStopped(instanceID)
 	return nil
 }
 
-// StopByStrategyName gracefully terminates an instance by strategy name
+// StopByStrategyName gracefully terminates an instance by strategy name.
 func (im *instanceManager) StopByStrategyName(strategyName string) error {
 	im.mu.RLock()
 	var instanceID string
@@ -188,11 +148,6 @@ func (im *instanceManager) StopByStrategyName(strategyName string) error {
 		"total_instances", len(im.instances))
 
 	for id, inst := range im.instances {
-		im.logger.Debug("Checking instance",
-			"id", id,
-			"strategy", inst.StrategyName,
-			"status", inst.Status)
-
 		if inst.StrategyName == strategyName && inst.Status == live.StatusRunning {
 			instanceID = id
 			break
@@ -208,7 +163,7 @@ func (im *instanceManager) StopByStrategyName(strategyName string) error {
 	return im.Stop(instanceID)
 }
 
-// Kill forcefully terminates an instance
+// Kill forcefully terminates an instance (PID-based when Cmd is nil / reattached).
 func (im *instanceManager) Kill(instanceID string) error {
 	im.mu.Lock()
 	instance, exists := im.instances[instanceID]
@@ -216,26 +171,24 @@ func (im *instanceManager) Kill(instanceID string) error {
 		im.mu.Unlock()
 		return fmt.Errorf("instance not found: %s", instanceID)
 	}
+	cmd := instance.Cmd
+	pid := instance.PID
+	strategyName := instance.StrategyName
+	if instance.Cancel != nil {
+		instance.Cancel()
+	}
 	im.mu.Unlock()
 
-	instance.Cancel()
-
-	if err := instance.Cmd.Process.Kill(); err != nil {
+	if err := killProcess(cmd, pid); err != nil {
 		return fmt.Errorf("failed to kill process: %w", err)
 	}
 
-	im.mu.Lock()
-	instance.Status = live.StatusStopped
-	instance.PID = 0
-	_ = im.saveStateLocked()
-	im.mu.Unlock()
-
-	im.logger.Info("Killed instance", "strategy", instance.StrategyName, "id", instanceID)
-
+	im.markStopped(instanceID)
+	im.logger.Info("Killed instance", "strategy", strategyName, "id", instanceID)
 	return nil
 }
 
-// Get retrieves a specific instance
+// Get retrieves a specific instance.
 func (im *instanceManager) Get(instanceID string) (*live.Instance, error) {
 	im.mu.RLock()
 	defer im.mu.RUnlock()
@@ -244,27 +197,24 @@ func (im *instanceManager) Get(instanceID string) (*live.Instance, error) {
 	if !exists {
 		return nil, fmt.Errorf("instance not found: %s", instanceID)
 	}
-
 	return instance, nil
 }
 
-// List returns all instances (filtered by status)
+// List returns all instances (filtered by status).
 func (im *instanceManager) List(status live.InstanceStatus) ([]*live.Instance, error) {
 	im.mu.RLock()
 	defer im.mu.RUnlock()
 
 	var result []*live.Instance
-
 	for _, instance := range im.instances {
 		if status == "" || instance.Status == status {
 			result = append(result, instance)
 		}
 	}
-
 	return result, nil
 }
 
-// LoadRunning loads instances from state file (after restart)
+// LoadRunning loads instances from state file (after restart).
 func (im *instanceManager) LoadRunning(ctx context.Context) error {
 	instances, err := im.stateStore.Load()
 	if err != nil {
@@ -275,52 +225,52 @@ func (im *instanceManager) LoadRunning(ctx context.Context) error {
 	defer im.mu.Unlock()
 
 	for _, instance := range instances {
-		if instance.Status == live.StatusRunning {
-			// Verify process still exists
-			_, err := os.FindProcess(instance.PID)
-			if err != nil {
-				instance.Status = live.StatusCrashed
-				instance.Error = "Process not found after restart"
-				continue
-			}
-
-			// Process still alive - reattach monitoring
-			instCtx, cancel := context.WithCancel(ctx)
-			instance.Context = instCtx
-			instance.Cancel = cancel
-			im.instances[instance.ID] = instance
-
-			go im.monitorProcess(instance)
+		if instance.Status != live.StatusRunning {
+			continue
 		}
+
+		// FindProcess alone is not enough on Unix — use Signal(0)
+		if !processAlive(instance.PID) {
+			instance.Status = live.StatusCrashed
+			instance.Error = "Process not found after restart"
+			im.instances[instance.ID] = instance
+			continue
+		}
+
+		instCtx, cancel := context.WithCancel(ctx)
+		instance.Context = instCtx
+		instance.Cancel = cancel
+		// Cmd stays nil for reattached instances
+		im.instances[instance.ID] = instance
+		go im.monitorProcess(instance)
 	}
 
 	return im.saveStateLocked()
 }
 
-// SaveState persists current state to disk
+// SaveState persists current state to disk.
 func (im *instanceManager) SaveState() error {
 	im.mu.Lock()
 	defer im.mu.Unlock()
-
 	return im.saveStateLocked()
 }
 
-// saveStateLocked persists state (must be called with lock held)
 func (im *instanceManager) saveStateLocked() error {
 	instances := make([]*live.Instance, 0, len(im.instances))
 	for _, inst := range im.instances {
 		instances = append(instances, inst)
 	}
-
 	return im.stateStore.Save(instances)
 }
 
-// Shutdown gracefully terminates all instances
+// Shutdown gracefully terminates all running instances.
 func (im *instanceManager) Shutdown(ctx context.Context, timeout time.Duration) error {
 	im.mu.RLock()
 	instanceIDs := make([]string, 0, len(im.instances))
-	for id := range im.instances {
-		instanceIDs = append(instanceIDs, id)
+	for id, inst := range im.instances {
+		if inst.Status == live.StatusRunning {
+			instanceIDs = append(instanceIDs, id)
+		}
 	}
 	im.mu.RUnlock()
 
@@ -328,15 +278,12 @@ func (im *instanceManager) Shutdown(ctx context.Context, timeout time.Duration) 
 	defer cancel()
 
 	done := make(chan error, len(instanceIDs))
-
-	// Stop all in parallel
 	for _, id := range instanceIDs {
 		go func(instID string) {
 			done <- im.Stop(instID)
 		}(id)
 	}
 
-	// Wait for all
 	var errs []error
 	for i := 0; i < len(instanceIDs); i++ {
 		select {
@@ -352,11 +299,20 @@ func (im *instanceManager) Shutdown(ctx context.Context, timeout time.Duration) 
 	if len(errs) > 0 {
 		return fmt.Errorf("shutdown errors: %v", errs)
 	}
-
 	return nil
 }
 
-// monitorProcess monitors a running process for crashes
+func (im *instanceManager) markStopped(instanceID string) {
+	im.mu.Lock()
+	defer im.mu.Unlock()
+	if inst, ok := im.instances[instanceID]; ok {
+		inst.Status = live.StatusStopped
+		inst.PID = 0
+	}
+	_ = im.saveStateLocked()
+}
+
+// monitorProcess monitors a running process for crashes using Signal(0).
 func (im *instanceManager) monitorProcess(instance *live.Instance) {
 	ticker := time.NewTicker(5 * time.Second)
 	defer ticker.Stop()
@@ -366,15 +322,25 @@ func (im *instanceManager) monitorProcess(instance *live.Instance) {
 		case <-instance.Context.Done():
 			return
 		case <-ticker.C:
-			// Check if process still alive
-			if _, err := os.FindProcess(instance.PID); err != nil {
-				im.mu.Lock()
-				instance.Status = live.StatusCrashed
-				instance.Error = "Process exited unexpectedly"
-				_ = im.saveStateLocked()
-				im.mu.Unlock()
+			im.mu.RLock()
+			pid := instance.PID
+			status := instance.Status
+			im.mu.RUnlock()
 
-				im.logger.Error("Instance crashed", "strategy", instance.StrategyName, "id", instance.ID)
+			if status != live.StatusRunning {
+				return
+			}
+
+			if !processAlive(pid) {
+				im.mu.Lock()
+				if instance.Status == live.StatusRunning {
+					instance.Status = live.StatusCrashed
+					instance.Error = "Process exited unexpectedly"
+					instance.PID = 0
+					_ = im.saveStateLocked()
+					im.logger.Error("Instance crashed", "strategy", instance.StrategyName, "id", instance.ID)
+				}
+				im.mu.Unlock()
 				return
 			}
 
@@ -383,4 +349,64 @@ func (im *instanceManager) monitorProcess(instance *live.Instance) {
 			im.mu.Unlock()
 		}
 	}
+}
+
+func signalProcess(cmd *exec.Cmd, pid int, sig os.Signal) error {
+	if cmd != nil && cmd.Process != nil {
+		return cmd.Process.Signal(sig)
+	}
+	if pid <= 0 {
+		return fmt.Errorf("invalid pid %d", pid)
+	}
+	proc, err := os.FindProcess(pid)
+	if err != nil {
+		return err
+	}
+	return proc.Signal(sig)
+}
+
+// killProcess force-kills via Cmd or PID. Nil Cmd (reattached) is supported.
+func killProcess(cmd *exec.Cmd, pid int) error {
+	if cmd != nil && cmd.Process != nil {
+		if err := cmd.Process.Kill(); err == nil {
+			return nil
+		}
+	}
+	if pid <= 0 {
+		return fmt.Errorf("instance has no valid process reference")
+	}
+	if !processAlive(pid) {
+		return nil
+	}
+	proc, err := os.FindProcess(pid)
+	if err != nil {
+		return err
+	}
+	return proc.Kill()
+}
+
+// waitForExit waits until the process exits or timeout elapses.
+func waitForExit(cmd *exec.Cmd, pid int, timeout time.Duration) error {
+	if cmd != nil && cmd.Process != nil {
+		done := make(chan error, 1)
+		go func() { done <- cmd.Wait() }()
+		select {
+		case <-done:
+			return nil
+		case <-time.After(timeout):
+			return fmt.Errorf("timeout waiting for process to exit")
+		}
+	}
+
+	deadline := time.Now().Add(timeout)
+	for time.Now().Before(deadline) {
+		if !processAlive(pid) {
+			return nil
+		}
+		time.Sleep(100 * time.Millisecond)
+	}
+	if !processAlive(pid) {
+		return nil
+	}
+	return fmt.Errorf("timeout waiting for process to exit")
 }

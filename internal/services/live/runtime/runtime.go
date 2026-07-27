@@ -2,9 +2,6 @@ package runtime
 
 import (
 	"fmt"
-	"os"
-	"os/signal"
-	"syscall"
 
 	"github.com/wisp-trading/sdk/pkg/types/config"
 	"github.com/wisp-trading/sdk/pkg/types/logging"
@@ -30,6 +27,8 @@ func NewRuntime(
 	}
 }
 
+// Run starts a strategy (plugin path — legacy) and blocks on the shared
+// shutdown contract: OS signals and remote HTTP /shutdown both exit cleanly.
 func (r *liveRuntime) Run(strategyDir string) error {
 	wispPath := "wisp.yml"
 	cfg, err := r.configLoader.LoadForStrategy(strategyDir, wispPath)
@@ -38,6 +37,7 @@ func (r *liveRuntime) Run(strategyDir string) error {
 	}
 
 	r.logger.Info("Config loaded", "strategy", cfg.Strategy.Name)
+	r.logger.Warn("Plugin packaging path is legacy; prefer standalone binaries with StartStandalone + Wait")
 
 	err = r.runtime.Start(strategyDir, wispPath)
 	if err != nil {
@@ -45,17 +45,12 @@ func (r *liveRuntime) Run(strategyDir string) error {
 	}
 
 	r.logger.Info("SDK startup complete")
-	r.logger.Info("Strategy running, keeping process alive...")
+	r.logger.Info("Strategy running; waiting for signal or remote /shutdown...")
 
-	sigChan := make(chan os.Signal, 1)
-	signal.Notify(sigChan, os.Interrupt, syscall.SIGTERM)
-
-	sig := <-sigChan
-	r.logger.Info("Received shutdown signal", "signal", sig)
-
-	r.logger.Info("Stopping strategy...")
-	if err := r.runtime.Stop(); err != nil {
-		r.logger.Error("Failed to stop strategy", "error", err)
+	// Shared contract: Wait selects on OS signals + ShutdownRequested, then Stop.
+	if err := r.runtime.Wait(); err != nil {
+		r.logger.Error("Failed during shutdown wait", "error", err)
+		return err
 	}
 
 	r.logger.Info("Shutdown complete")

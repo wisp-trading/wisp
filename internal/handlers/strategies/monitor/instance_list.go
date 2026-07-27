@@ -10,6 +10,7 @@ import (
 	"github.com/donderom/bubblon"
 	"github.com/wisp-trading/sdk/pkg/types/monitoring"
 	"github.com/wisp-trading/wisp/internal/ui"
+	"github.com/wisp-trading/wisp/pkg/live"
 )
 
 // InstanceInfo holds display data for a running instance
@@ -27,6 +28,7 @@ type InstanceInfo struct {
 type instanceListModel struct {
 	ui.BaseModel      // Embed for common key handling
 	querier           monitoring.ViewQuerier
+	manager           live.InstanceManager
 	instances         []InstanceInfo
 	cursor            int
 	loading           bool
@@ -40,10 +42,11 @@ type instanceListModel struct {
 }
 
 // NewInstanceListModel creates a new instance list view
-func NewInstanceListModel(querier monitoring.ViewQuerier) tea.Model {
+func NewInstanceListModel(querier monitoring.ViewQuerier, manager live.InstanceManager) tea.Model {
 	return &instanceListModel{
 		BaseModel:         ui.BaseModel{IsRoot: false}, // Let bubblon handle the stack
 		querier:           querier,
+		manager:           manager,
 		loading:           true,
 		stopConfirmCursor: 0, // Default to "No" for safety
 	}
@@ -83,8 +86,15 @@ func (m *instanceListModel) spinnerTickCmd() tea.Cmd {
 
 func (m *instanceListModel) stopInstance(strategyName string) tea.Cmd {
 	return func() tea.Msg {
-		// Use HTTP-based shutdown instead of process signals
-		// This sends a POST /shutdown to the monitoring server running inside the process
+		// Supervisor contract: HTTP /shutdown → wait for exit → SIGKILL last.
+		// Prefer InstanceManager when the process was spawned/tracked by the CLI.
+		if m.manager != nil {
+			if err := m.manager.StopByStrategyName(strategyName); err == nil {
+				return instanceStoppedMsg{err: nil}
+			}
+			// Not in manager state (e.g. external standalone binary) — fall through.
+		}
+		// Untracked process: still request graceful exit via monitoring socket.
 		err := m.querier.Shutdown(strategyName)
 		return instanceStoppedMsg{err: err}
 	}

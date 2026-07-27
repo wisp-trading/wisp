@@ -3,9 +3,7 @@ package cmd
 import (
 	"fmt"
 	"os"
-	"os/signal"
 	"path/filepath"
-	"syscall"
 
 	"github.com/spf13/cobra"
 	"github.com/wisp-trading/wisp/pkg/live"
@@ -46,19 +44,13 @@ func (rsc *RunStrategyCommand) run(cmd *cobra.Command, _ []string) error {
 		return fmt.Errorf("strategy directory not found: %s", strategyDir)
 	}
 
-	sigChan := make(chan os.Signal, 1)
-	signal.Notify(sigChan, os.Interrupt, syscall.SIGTERM)
+	// Note: signal handling lives in runtime.Wait (shared with HTTP /shutdown).
+	// This command is the legacy plugin packaging path; prefer standalone binaries.
 
-	go func() {
-		<-sigChan
-		fmt.Println("\n\n🛑 Received shutdown signal, stopping strategy...")
-	}()
-
-	// Start runtime - it will load config.yml from strategy dir and exchanges.yml from project root
-	fmt.Printf("🚀 Starting live trading\n")
+	fmt.Printf("🚀 Starting live trading (legacy plugin path)\n")
 	fmt.Printf("   Strategy: %s\n", strategyName)
 	fmt.Printf("   Path: %s\n", strategyDir)
-	fmt.Println("\nPress Ctrl+C to stop...")
+	fmt.Println("\nPress Ctrl+C to stop (or remote HTTP /shutdown)...")
 
 	if err := rsc.runtime.Run(strategyDir); err != nil {
 		return fmt.Errorf("runtime error: %w", err)

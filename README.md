@@ -184,12 +184,20 @@ parameters:
 
 ### 4. Deploy to Live Trading
 
+**Blessed path (new strategies):** build and run a **standalone binary** that calls SDK `StartStandalone` + `Wait`. This is the supported packaging model for live trading — your `main` owns the process; Wisp monitoring `POST /shutdown` and OS signals both exit cleanly.
+
+Plugin / `wisp run-strategy` (`.so` load) is **legacy** and not recommended for new strategies. The TUI “Start Live” path still uses it for older projects; migrate standalone when you touch a strategy.
+
 ```bash
+# Standalone (recommended): run your strategy binary from its directory
+go run ./strategies/momentum
+
+# Legacy TUI spawn (plugin path — demoted)
 wisp
 # Navigate to: Strategies → momentum → Start Live
 ```
 
-Your strategy runs as a detached process, continuing even after you close the CLI.
+Standalone processes continue after you close the CLI when launched detached (or via your process supervisor).
 
 ### 5. Monitor Live Strategies
 

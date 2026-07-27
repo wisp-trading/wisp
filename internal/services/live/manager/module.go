@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/wisp-trading/sdk/pkg/types/logging"
+	"github.com/wisp-trading/sdk/pkg/types/monitoring"
 	"github.com/wisp-trading/wisp/pkg/live"
 	"go.uber.org/fx"
 )
@@ -24,10 +25,11 @@ type instanceManagerParams struct {
 	StateStore live.StateStore
 	Spawner    live.ProcessSpawner
 	Logger     logging.ApplicationLogger
+	Querier    monitoring.ViewQuerier `optional:"true"`
 }
 
 func provideInstanceManager(params instanceManagerParams) live.InstanceManager {
-	return NewInstanceManager(params.StateStore, params.Spawner, params.Logger)
+	return NewInstanceManager(params.StateStore, params.Spawner, params.Logger, params.Querier)
 }
 
 // initializeInstanceManager loads running instances from state file on startup
