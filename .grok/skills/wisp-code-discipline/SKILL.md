@@ -81,11 +81,12 @@ zombies before adding markets. Mocks: mockery only.
 
 **Done:** instruments YAML removed; hard-fail unregistered connectors at init;
 spot/perp pair shell shared via
-`markets/base/{watchlist,analytics,universe,views,activity,facade,executor,store}`;
+`markets/base/{watchlist,analytics,universe,views,activity,facade,executor,store,signal,types}`;
+PairAction + PairSignalData + builder Core; domain only wraps fluent types + leverage/funding;
 `package pkg` (was packages); dead spot/perp `config/` packages removed.
 
-**Still open:** options/prediction-specific shells (different keys); signal builders
-(domain action types); optional `pkg/testing` trim.
+**Still open:** options/prediction shells (different keys); optional `pkg/testing` trim;
+spot PNL trade-tracker vs perp exchange positions (different sources, not copy-paste).
 
 **Process:** no release tags unless ship-worthy change.
 
