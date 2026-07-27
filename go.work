@@ -2,13 +2,12 @@ go 1.26
 
 toolchain go1.26.5
 
-// Star-facing monorepo entry. Green Tea GC default on Go 1.26.
+// Star-facing monorepo: CLI + sdk only.
+// Connectors stay a separate module (go get / local replace when needed).
+// Green Tea GC is default on Go 1.26.
 // Private alpha is never included.
 
 use (
 	.
 	./sdk
-	./connectors
-	./backtest
-	./polymarket-go-sdk
 )

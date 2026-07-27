@@ -51,7 +51,7 @@ cd wisp
 # Requires Go 1.26+ (Green Tea GC enabled by default)
 ```
 
-Full monorepo layout (sdk, connectors, …): see [MONOREPO.md](./MONOREPO.md).
+Monorepo layout (CLI + sdk submodule): see [MONOREPO.md](./MONOREPO.md). Connectors are a separate module.
 
 ```bash
 # legacy one-liner without submodules still installs the CLI module only:
