@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/charmbracelet/bubbles/key"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/huh"
 	"github.com/charmbracelet/lipgloss"
@@ -29,6 +30,9 @@ type ConnectorFormModel struct {
 
 	// UI state
 	showingDetail bool // true = show detail view, false = show edit form
+	// confirmExit is a modal over the edit form (ctrl+x / esc).
+	confirmExit   bool
+	confirmCursor int // 0 = stay, 1 = leave
 
 	// Form field values
 	exchangeName       string
@@ -219,12 +223,18 @@ func (m *ConnectorFormModel) buildForm() *huh.Form {
 		m.enabled = true // Default to enabled for new connectors
 	}
 
+	km := huh.NewDefaultKeyMap()
+	// Esc / ctrl+x abort the form (default Quit is only ctrl+c).
+	// Parent model intercepts these first for a confirm dialog when possible.
+	km.Quit = key.NewBinding(
+		key.WithKeys("ctrl+x", "ctrl+c", "esc"),
+		key.WithHelp("ctrl+x", "cancel"),
+	)
 	return huh.NewForm(groups...).
 		WithTheme(huh.ThemeCharm()).
 		WithShowHelp(true).
 		WithShowErrors(true).
-		// Tab / shift-tab between fields; Enter advances; Esc aborts.
-		WithKeyMap(huh.NewDefaultKeyMap())
+		WithKeyMap(km)
 }
 
 // minInt returns the minimum of two ints
@@ -255,54 +265,45 @@ func (m *ConnectorFormModel) Init() tea.Cmd {
 }
 
 func (m *ConnectorFormModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
-	// Handle error state
+	// Error banner
 	if m.err != nil {
 		switch msg := msg.(type) {
 		case tea.KeyMsg:
-			if msg.String() == "esc" {
-				// Clear error and return to form
+			switch msg.String() {
+			case "esc", "enter":
 				m.err = nil
 				return m, nil
-			}
-			if msg.String() == "q" {
-				return m, m.router.Back()
+			case "q", "ctrl+x":
+				return m, m.leaveForm()
 			}
 		}
 		return m, nil
 	}
 
-	// Handle Ctrl+C to quit
-	switch msg := msg.(type) {
-	case tea.KeyMsg:
-		switch msg.String() {
-		case "ctrl+c":
-			return m, tea.Quit
-		}
+	// Modal: confirm discard / leave edit form
+	if m.confirmExit {
+		return m.updateConfirmExit(msg)
 	}
 
-	// If showing detail view
+	// Detail card
 	if m.showingDetail {
 		switch msg := msg.(type) {
 		case tea.KeyMsg:
 			switch msg.String() {
-			case "q", "esc":
+			case "q", "esc", "ctrl+x", "backspace":
 				return m, m.router.Back()
-			case "e":
-				// Switch to edit mode
+			case "e", "enter":
 				m.showingDetail = false
 				m.form = m.buildForm()
 				return m, m.form.Init()
 			case " ":
-				// Quick toggle enabled
 				m.connector.Enabled = !m.connector.Enabled
 				if err := m.config.UpdateConnector(m.connector); err != nil {
 					m.err = err
 					return m, nil
 				}
-				// Stay on detail view to see the change
 				return m, nil
 			case "d":
-				// Show delete confirmation dialog
 				deleteView := m.deleteFactory(m.connector.Name)
 				return m, bubblon.Open(deleteView)
 			}
@@ -310,23 +311,37 @@ func (m *ConnectorFormModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m, nil
 	}
 
-	// Editing mode - handle form
+	// Edit form: intercept leave keys before huh swallows them
+	if km, ok := msg.(tea.KeyMsg); ok {
+		switch km.String() {
+		case "ctrl+x", "esc":
+			m.confirmExit = true
+			m.confirmCursor = 0 // default Stay
+			return m, nil
+		case "ctrl+c":
+			// Same as leave — confirm first (don't hard-quit mid-edit)
+			m.confirmExit = true
+			m.confirmCursor = 0
+			return m, nil
+		}
+	}
+
+	if m.form == nil {
+		return m, nil
+	}
+
 	var cmd tea.Cmd
 	form, cmd := m.form.Update(msg)
 	if f, ok := form.(*huh.Form); ok {
 		m.form = f
 	}
 
-	// Check if form is complete
 	if m.form.State == huh.StateCompleted {
-		// Copy values from credentialPointers to credentials map
 		for fieldName, valuePtr := range m.credentialPointers {
 			if valuePtr != nil {
 				m.credentials[fieldName] = *valuePtr
 			}
 		}
-
-		// Build connector from form values
 		m.connector = config.Connector{
 			Name:        m.exchangeName,
 			Network:     m.network,
@@ -334,32 +349,62 @@ func (m *ConnectorFormModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			Assets:      m.assets,
 			Credentials: m.credentials,
 		}
-
-		// Save the connector
 		if err := m.saveConnector(); err != nil {
-			// Show error but allow user to go back or retry
-			m.err = fmt.Errorf("%w\n\nPress Esc to cancel or fix the values and submit again", err)
-			// Reset form state so user can edit
+			m.err = fmt.Errorf("%w\n\nEsc: fix form  ·  Ctrl+X: leave without saving", err)
 			m.form.State = huh.StateNormal
 			return m, nil
 		}
-
-		// Success - go back to list
 		return m, m.router.Back()
 	}
 
-	// Check if form was aborted (Esc pressed)
+	// huh Quit (if it still fires) → same confirm
 	if m.form.State == huh.StateAborted {
-		if m.isEditMode {
-			// Go back to detail view
-			m.showingDetail = true
-			return m, nil
-		}
-		// Adding new - go back to list
-		return m, m.router.Back()
+		m.form.State = huh.StateNormal
+		m.confirmExit = true
+		m.confirmCursor = 0
+		return m, nil
 	}
 
 	return m, cmd
+}
+
+func (m *ConnectorFormModel) updateConfirmExit(msg tea.Msg) (tea.Model, tea.Cmd) {
+	switch msg := msg.(type) {
+	case tea.KeyMsg:
+		switch msg.String() {
+		case "left", "h", "up", "k":
+			m.confirmCursor = 0
+		case "right", "l", "down", "j", "tab":
+			m.confirmCursor = 1
+		case "enter", " ":
+			if m.confirmCursor == 1 {
+				m.confirmExit = false
+				return m, m.leaveForm()
+			}
+			// Stay — resume form
+			m.confirmExit = false
+			return m, nil
+		case "n", "N", "esc":
+			m.confirmExit = false
+			return m, nil
+		case "y", "Y", "ctrl+x":
+			m.confirmExit = false
+			return m, m.leaveForm()
+		}
+	}
+	return m, nil
+}
+
+// leaveForm exits the form: detail view if editing, list if adding.
+func (m *ConnectorFormModel) leaveForm() tea.Cmd {
+	m.confirmExit = false
+	m.err = nil
+	if m.isEditMode {
+		m.showingDetail = true
+		m.form = nil
+		return nil
+	}
+	return m.router.Back()
 }
 
 func (m *ConnectorFormModel) saveConnector() error {
@@ -386,20 +431,43 @@ func (m *ConnectorFormModel) saveConnector() error {
 
 func (m *ConnectorFormModel) View() string {
 	if m.err != nil {
-		errorBox := ui.ErrorBoxStyle.Render("❌ " + m.err.Error())
-		return errorBox
+		return ui.ErrorBoxStyle.Render("❌ "+m.err.Error()) + "\n\n" +
+			ui.MutedStyle.Render("Esc fix  ·  Ctrl+X leave")
 	}
 
-	// Show detail view or edit form
 	if m.showingDetail {
 		return m.renderDetailView()
 	}
 
-	if m.form == nil {
-		return "Loading..."
+	base := "Loading..."
+	if m.form != nil {
+		base = m.form.View()
 	}
+	base += "\n" + ui.MutedStyle.Render("Tab next field  ·  Enter submit  ·  Ctrl+X / Esc cancel")
 
-	return m.form.View()
+	if m.confirmExit {
+		return m.renderConfirmExit(base)
+	}
+	return base
+}
+
+func (m *ConnectorFormModel) renderConfirmExit(under string) string {
+	stay := "  Stay  "
+	leave := "  Leave  "
+	if m.confirmCursor == 0 {
+		stay = ui.SelectedItemStyle.Render("[ Stay ]")
+		leave = ui.MutedStyle.Render("  Leave  ")
+	} else {
+		stay = ui.MutedStyle.Render("  Stay  ")
+		leave = ui.SelectedItemStyle.Render("[ Leave ]")
+	}
+	modal := ui.ErrorBoxStyle.Width(52).Render(
+		"Leave without saving?\n\n" +
+			"Unsaved credential edits will be discarded.\n\n" +
+			stay + "   " + leave + "\n\n" +
+			ui.MutedStyle.Render("←→ choose  ↵ confirm  y leave  n stay"),
+	)
+	return under + "\n\n" + modal
 }
 
 // renderDetailView shows a beautiful detail card for the connector
