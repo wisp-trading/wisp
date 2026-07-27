@@ -15,12 +15,12 @@ type StrategyListView interface {
 }
 
 type strategyListView struct {
-	strategies      []config.Strategy
-	cursor          int
-	pageSize        int
-	pageNum         int // 1-based
-	width           int
-	height          int
+	strategies []config.Strategy
+	cursor     int
+	pageSize   int
+	pageNum    int // 1-based
+	width      int
+	height     int
 	// listTop is the content line offset of the first strategy row (for mouse hit testing)
 	listTop         int
 	compileService  strategyTypes.CompileService
