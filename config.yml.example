@@ -2,6 +2,7 @@
 # Place next to main.go: strategies/<name>/config.yml
 #
 # Lists exchanges/assets only — never secrets.
+# Domain (spot/perp/…) = connector MarketType for each exchange.
 # Keys: wisp → Settings → ~/.wisp/connectors.yml
 
 name: starter
@@ -12,6 +13,5 @@ assets:
   hyperliquid:
     - base: BTC
       quote: USD
-      instruments: [perp]
 parameters:
   dry_run: true

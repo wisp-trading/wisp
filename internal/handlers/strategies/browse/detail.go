@@ -72,6 +72,9 @@ func (m *strategyDetailView) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.cursor++
 			}
 		case "enter", " ":
+			if m.strategy != nil && m.strategy.Error != "" {
+				return m, nil // fix config first
+			}
 			action := m.actions[m.cursor]
 			switch action {
 			case ActionCompile:
@@ -93,11 +96,18 @@ func (m *strategyDetailView) View() string {
 
 	var content string
 	content += ui.TitleStyle.Render(m.strategy.Name) + "\n"
+	if m.strategy.Error != "" {
+		content += ui.ErrorBoxStyle.Render("config.yml: "+m.strategy.Error) + "\n\n"
+		content += ui.MutedStyle.Render("Fix strategies/"+m.strategy.Name+"/config.yml then r refresh.") + "\n"
+		content += ui.MutedStyle.Render("q/Esc back")
+		return ui.BoxStyle.Render(content)
+	}
 	if len(m.strategy.Exchanges) > 0 {
 		content += ui.MutedStyle.Render("exchanges: ") +
 			ui.ValueStyle.Render(fmt.Sprintf("%v", m.strategy.Exchanges)) + "\n"
 	}
-	content += ui.MutedStyle.Render("Keys: Settings → ~/.wisp/connectors.yml") + "\n\n"
+	content += ui.MutedStyle.Render("Keys: Settings → ~/.wisp/connectors.yml") + "\n"
+	content += ui.MutedStyle.Render("Domain = connector MarketType (not a YAML field)") + "\n\n"
 	content += ui.SubtitleStyle.Render("Select action:") + "\n\n"
 
 	for i, action := range m.actions {

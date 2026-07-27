@@ -239,10 +239,16 @@ func (m *strategyListView) View() string {
 	start, end := m.pageStart(), m.pageEnd()
 	for i := start; i < end; i++ {
 		strat := m.strategies[i]
-		exchanges := fmt.Sprintf("[%v]", strat.Exchanges)
-		line := fmt.Sprintf("%s %s", strat.Name, exchanges)
+		var line string
+		if strat.Error != "" {
+			line = fmt.Sprintf("%s  (config error)", strat.Name)
+		} else {
+			line = fmt.Sprintf("%s [%v]", strat.Name, strat.Exchanges)
+		}
 		if i == m.cursor {
 			content += ui.StrategyNameSelectedStyle.Render("▶ "+line) + "\n"
+		} else if strat.Error != "" {
+			content += ui.ErrorBoxStyle.Render("  "+line) + "\n"
 		} else {
 			content += ui.StrategyNameStyle.Render("  "+line) + "\n"
 		}

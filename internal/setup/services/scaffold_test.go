@@ -40,6 +40,10 @@ func TestCreateProjectWritesStandaloneStarter(t *testing.T) {
 	if !contains(string(body), "StartStandalone") || !contains(string(body), "Wait") {
 		t.Fatal("main.go must use StartStandalone + Wait")
 	}
+	cfgBody, _ := os.ReadFile(cfg)
+	if contains(string(cfgBody), "instruments:") {
+		t.Fatal("config.yml must not list unused instruments — domain = connector MarketType")
+	}
 }
 
 func contains(s, sub string) bool {

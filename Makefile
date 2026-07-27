@@ -68,10 +68,9 @@ smoke: build ## Green path: CLI + reference standalone binary
 	cd examples/reference-standalone && $(GO) mod download && $(GO) build -trimpath -o reference-standalone .
 	@echo ""
 	@echo "OK: $(BIN) and examples/reference-standalone/reference-standalone"
-	@echo "Run (needs wisp.yml with enabled connectors):"
+	@echo "Run (needs keys in ~/.wisp/connectors.yml via: wisp → Settings):"
 	@echo "  ./examples/reference-standalone/reference-standalone \\"
-	@echo "    --config ./examples/reference-standalone \\"
-	@echo "    --wisp ./wisp.yml"
+	@echo "    --config ./examples/reference-standalone"
 
 .PHONY: ci
 ci: verify vet lint test smoke ## Local approximation of GitHub CI

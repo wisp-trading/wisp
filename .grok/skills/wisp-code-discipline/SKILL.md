@@ -74,14 +74,17 @@ cd sdk && make redundancy   # or: go run ./tools/redundancy
 Uses product-surface root (`wisp` blank-import) + structural checks. Prefer deleting
 zombies before adding markets. Mocks: mockery only.
 
-## Clarity / redundancy backlog (parked)
+## Clarity / redundancy backlog
 
 **Market shell (standard layout):** `markets/<domain>/{module,facade,types,signal,executor,store,ingestor}`
 — clone that tree; domain Module Provides `facade.New*`; add Module to `pkg/modules.go`.
 
-**Still open:** spot/perp/options internal copy-paste (watchlist/assets); dual analytics;
-`instruments` YAML unused; soft-skip unregistered connectors; `package packages` rename;
-optional `pkg/testing` trim.
+**Done:** instruments YAML removed; hard-fail unregistered connectors at init;
+spot/perp pair watchlist + asset load shared via `markets/base/watchlist`;
+`package pkg` (was packages).
+
+**Still open (low priority):** dual analytics packages; options-specific copy;
+optional `pkg/testing` trim; deeper domain shell DRY only when adding markets.
 
 **Process:** no release tags unless ship-worthy change.
 

@@ -142,7 +142,7 @@ func (s *MyStrategy) run(ctx context.Context) {
                 signal, _ := s.k.Spot().Signal(s.GetName()).
                     Buy(pair, connector.Hyperliquid, s.k.Asset("BTC").Qty(0.01)).
                     Build()
-                s.Emit(signal)
+                s.k.Spot().Emit(signal)
             }
 
             // Overbought: sell
@@ -150,7 +150,7 @@ func (s *MyStrategy) run(ctx context.Context) {
                 signal, _ := s.k.Spot().Signal(s.GetName()).
                     Sell(pair, connector.Hyperliquid, s.k.Asset("BTC").Qty(0.01)).
                     Build()
-                s.Emit(signal)
+                s.k.Spot().Emit(signal)
             }
         }
     }
@@ -163,26 +163,16 @@ Edit `strategies/momentum/config.yml`:
 
 ```yaml
 name: momentum
-display_name: "Momentum Strategy"
-description: "RSI-based momentum trading"
-type: momentum
-
+# Domain (spot/perp/…) = connector MarketType for each exchange.
 exchanges:
   - hyperliquid
-
 assets:
   hyperliquid:
-    - BTC/USDT
-    - ETH/USDT
-
-indicators:
-  rsi:
-    period: 14
-    oversold: 30
-    overbought: 70
-
+    - base: BTC
+      quote: USD
 parameters:
   position_size: 0.1
+  dry_run: true
 ```
 
 ### 4. Deploy to Live Trading
@@ -443,14 +433,14 @@ if current < 30 {
 signal, _ := s.k.Spot().Signal(s.GetName()).
 Buy(pair, connector.Hyperliquid, s.k.Asset("BTC").Qty(0.1)).
 Build()
-s.Emit(signal)
+s.k.Spot().Emit(signal)
 }
 
 if current > 70 {
 signal, _ := s.k.Spot().Signal(s.GetName()).
 Sell(pair, connector.Hyperliquid, s.k.Asset("BTC").Qty(0.1)).
 Build()
-s.Emit(signal)
+s.k.Spot().Emit(signal)
 }
 }
 }
@@ -486,12 +476,12 @@ if spread.GreaterThan(numerical.Zero) {
 buy, _ := s.k.Spot().Signal(s.GetName()).
 Buy(pair, connector.Hyperliquid, s.k.Asset("BTC").Qty(0.5)).
 Build()
-s.Emit(buy)
+s.k.Spot().Emit(buy)
 
 sell, _ := s.k.Spot().Signal(s.GetName()).
 Sell(pair, connector.Bybit, s.k.Asset("BTC").Qty(0.5)).
 Build()
-s.Emit(sell)
+s.k.Spot().Emit(sell)
 }
 }
 }

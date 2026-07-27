@@ -76,13 +76,13 @@ require (
 `, module),
 		"config.yml": fmt.Sprintf(`name: %s
 description: Starter strategy (standalone binary)
+# Domain (spot/perp/…) comes from the connector MarketType, not this file.
 exchanges:
   - hyperliquid
 assets:
   hyperliquid:
     - base: BTC
       quote: USD
-      instruments: [perp]
 parameters:
   dry_run: true
 `, strategy),

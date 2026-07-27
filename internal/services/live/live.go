@@ -40,16 +40,31 @@ func NewLiveService(
 
 // ExecuteStrategy runs the selected strategy with all its configured exchanges
 func (s *liveService) ExecuteStrategy(ctx context.Context, strategy *config.Strategy) error {
-	// 1. Pre-validate that we have connectors for this strategy's exchanges
+	if strategy == nil {
+		return fmt.Errorf("no strategy selected")
+	}
+	if strategy.Error != "" {
+		return fmt.Errorf("strategy '%s' has invalid config.yml: %s", strategy.Name, strategy.Error)
+	}
+	if len(strategy.Exchanges) == 0 {
+		return fmt.Errorf(
+			"strategy '%s' has no exchanges in config.yml — add at least one (e.g. hyperliquid)",
+			strategy.Name,
+		)
+	}
+
+	// 1. Pre-validate keys for strategy exchanges (hard fail with actionable message)
 	connectorConfigs, err := s.connectorService.GetConnectorConfigsForStrategy(strategy.Exchanges)
 	if err != nil {
-		return fmt.Errorf("cannot start strategy '%s': %w\n\nPlease check:\n- connectors in ~/.wisp/connectors.yml (CLI Settings)\n- required exchanges enabled: %v\n- exchange connectors available in the SDK",
-			strategy.Name, err, strategy.Exchanges)
+		return fmt.Errorf(
+			"cannot start strategy '%s': %w\n\nFix: wisp → Settings → add/enable keys for %v (~/.wisp/connectors.yml)\nInclude connectors.Module in the strategy fx graph",
+			strategy.Name, err, strategy.Exchanges,
+		)
 	}
 
 	s.logger.Info("Validated connector configs", "strategy", strategy.Name, "connectors", len(connectorConfigs))
 
-	// 2. Compile strategy (standalone binary preferred when main.go is present)
+	// 2. Compile standalone binary (main.go required)
 	if err := s.compile.CompileStrategy(strategy.Path); err != nil {
 		return fmt.Errorf("failed to compile strategy: %w", err)
 	}
