@@ -80,22 +80,18 @@ func (s *compileService) compileBinary(strategyPath string) error {
 
 	_ = os.Remove(out)
 
-	fmt.Printf("🔨 Compiling standalone strategy %s...\n", name)
-	fmt.Printf("  📦 go mod tidy...\n")
+	// Quiet build — TUI shows its own progress; only surface command failures.
 	tidyCmd := exec.Command("go", "mod", "tidy")
 	tidyCmd.Dir = strategyPath
 	if outBytes, err := tidyCmd.CombinedOutput(); err != nil {
 		return fmt.Errorf("go mod tidy failed: %s", string(outBytes))
 	}
 
-	fmt.Printf("  🔧 go build -o %s .\n", name)
 	cmd := exec.Command("go", "build", "-o", name, ".")
 	cmd.Dir = strategyPath
 	if outBytes, err := cmd.CombinedOutput(); err != nil {
 		return fmt.Errorf("standalone build failed: %s", string(outBytes))
 	}
-
-	fmt.Printf("✅ Built standalone binary %s\n\n", out)
 	return nil
 }
 

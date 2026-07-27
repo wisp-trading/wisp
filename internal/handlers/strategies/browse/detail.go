@@ -1,6 +1,8 @@
 package browse
 
 import (
+	"fmt"
+
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/donderom/bubblon"
 	"github.com/wisp-trading/sdk/pkg/types/config"
@@ -17,7 +19,7 @@ const (
 )
 
 var actionNames = map[ActionType]string{
-	ActionStartTrading: "Start Trading",
+	ActionStartTrading: "Start Live",
 	ActionCompile:      "Compile",
 }
 
@@ -59,8 +61,7 @@ func (m *strategyDetailView) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		switch msg.String() {
 		case "ctrl+c":
 			return m, tea.Quit
-		case "q":
-			// Pop back to list view using Bubblon
+		case "q", "esc", "backspace":
 			return m, bubblon.Cmd(bubblon.Close())
 		case "up", "k":
 			if m.cursor > 0 {
@@ -70,8 +71,7 @@ func (m *strategyDetailView) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			if m.cursor < len(m.actions)-1 {
 				m.cursor++
 			}
-		case "enter":
-			// Navigate to selected action
+		case "enter", " ":
 			action := m.actions[m.cursor]
 			switch action {
 			case ActionCompile:
@@ -93,6 +93,11 @@ func (m *strategyDetailView) View() string {
 
 	var content string
 	content += ui.TitleStyle.Render(m.strategy.Name) + "\n"
+	if len(m.strategy.Exchanges) > 0 {
+		content += ui.MutedStyle.Render("exchanges: ") +
+			ui.ValueStyle.Render(fmt.Sprintf("%v", m.strategy.Exchanges)) + "\n"
+	}
+	content += ui.MutedStyle.Render("Keys: Settings → ~/.wisp/connectors.yml") + "\n\n"
 	content += ui.SubtitleStyle.Render("Select action:") + "\n\n"
 
 	for i, action := range m.actions {
@@ -104,7 +109,7 @@ func (m *strategyDetailView) View() string {
 		}
 	}
 
-	content += "\n" + ui.SubtitleStyle.Render("Enter to select, q to back, ctrl+c to quit")
+	content += "\n" + ui.MutedStyle.Render("↑↓  ↵ select   q/Esc back")
 
 	return ui.BoxStyle.Render(content)
 }

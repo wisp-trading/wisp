@@ -49,6 +49,22 @@ func NewSettingsListView(
 
 func (m *ConnectorListModel) Init() tea.Cmd {
 	m.err = nil
+	m.successMsg = ""
+	m.reload(true)
+	return nil
+}
+
+// reload re-reads ~/.wisp/connectors.yml and rebuilds configured/available lists.
+// clearErr: true on Init / explicit refresh; false on soft View refresh (keep action errors).
+func (m *ConnectorListModel) reload(jumpToAddIfEmpty bool) {
+	m.reloadWithOpts(jumpToAddIfEmpty, true)
+}
+
+func (m *ConnectorListModel) softReload() {
+	m.reloadWithOpts(false, false)
+}
+
+func (m *ConnectorListModel) reloadWithOpts(jumpToAddIfEmpty, clearErr bool) {
 	connectorList, err := m.config.GetConnectors()
 	if err != nil {
 		// Still show available exchanges so user can add the first key.
@@ -56,6 +72,9 @@ func (m *ConnectorListModel) Init() tea.Cmd {
 		m.configured = []config.Connector{}
 	} else {
 		m.configured = connectorList
+		if clearErr {
+			m.err = nil
+		}
 	}
 
 	configuredMap := make(map[string]bool)
@@ -70,18 +89,39 @@ func (m *ConnectorListModel) Init() tea.Cmd {
 		}
 	}
 
-	// First run: jump cursor to "add" section when nothing configured.
-	if len(m.configured) == 0 && len(m.available) > 0 {
+	total := len(m.configured) + len(m.available)
+	if total == 0 {
+		m.cursor = 0
+		m.inAvailableSection = false
+		return
+	}
+	if m.cursor >= total {
+		m.cursor = total - 1
+	}
+	if m.cursor < 0 {
+		m.cursor = 0
+	}
+	m.inAvailableSection = m.cursor >= len(m.configured)
+
+	if jumpToAddIfEmpty && len(m.configured) == 0 && len(m.available) > 0 {
 		m.cursor = 0
 		m.inAvailableSection = true
 	}
-
-	return nil
 }
 
 func (m *ConnectorListModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
+		// Soft-refresh after form/delete close (list stays mounted under bubblon stack).
+		prevSuccess := m.successMsg
+		m.reload(false)
+		// Keep flash messages until next non-refresh key; r sets its own.
+		if msg.String() != "r" {
+			m.successMsg = ""
+		} else {
+			m.successMsg = prevSuccess
+		}
+
 		switch msg.String() {
 		case "ctrl+c", "q", "esc", "ctrl+x", "backspace":
 			// Always allow leaving Settings → main menu
@@ -89,19 +129,16 @@ func (m *ConnectorListModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case "up", "k":
 			if m.cursor > 0 {
 				m.cursor--
-				// Update section tracking
 				m.inAvailableSection = m.cursor >= len(m.configured)
 			}
 		case "down", "j":
 			totalItems := len(m.configured) + len(m.available)
 			if m.cursor < totalItems-1 {
 				m.cursor++
-				// Update section tracking
 				m.inAvailableSection = m.cursor >= len(m.configured)
 			}
 		case "enter":
 			if m.inAvailableSection {
-				// Add new connector from available list
 				availableIndex := m.cursor - len(m.configured)
 				if availableIndex >= 0 && availableIndex < len(m.available) {
 					selectedExchange := m.available[availableIndex]
@@ -109,19 +146,17 @@ func (m *ConnectorListModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					return m, bubblon.Open(createView)
 				}
 			} else if m.cursor < len(m.configured) {
-				// Edit configured connector
 				selectedConnectorName := m.configured[m.cursor].Name
 				editView := m.formFactory(selectedConnectorName, true)
 				return m, bubblon.Open(editView)
 			}
 		case "d":
-			// Delete only works on configured connectors
 			if !m.inAvailableSection && m.cursor < len(m.configured) {
 				selectedConnectorName := m.configured[m.cursor].Name
 				deleteView := m.deleteFactory(selectedConnectorName)
 				return m, bubblon.Open(deleteView)
 			}
-		case " ":
+		case " ", "t":
 			// Toggle only works on configured connectors
 			if !m.inAvailableSection && m.cursor < len(m.configured) {
 				connectorName := m.configured[m.cursor].Name
@@ -129,17 +164,27 @@ func (m *ConnectorListModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				if err := m.config.EnableConnector(connectorName, newState); err != nil {
 					m.err = err
 				} else {
-					// Reload - calls Init() which refreshes both lists
-					m.Init()
-					m.successMsg = "Connector updated"
+					m.reload(false)
+					if newState {
+						m.successMsg = connectorName + " enabled"
+					} else {
+						m.successMsg = connectorName + " disabled"
+					}
 				}
 			}
+		case "r":
+			m.reload(false)
+			m.successMsg = "Refreshed"
 		}
 	}
 	return m, nil
 }
 
 func (m *ConnectorListModel) View() string {
+	// When form/delete pops, View re-renders before the next key — keep list current.
+	// Soft: do not clear action errors (e.g. failed toggle) until the next key.
+	m.softReload()
+
 	var content strings.Builder
 
 	title := ui.TitleStyle.Render("⚙️  Exchange keys")
@@ -266,21 +311,23 @@ func (m *ConnectorListModel) renderAvailableConnector(name string, selected bool
 func (m *ConnectorListModel) getHelpText() string {
 	if m.inAvailableSection {
 		return fmt.Sprintf(
-			"%s/%s Navigate  %s Add Connector  %s Back",
+			"%s/%s  %s Add  %s Refresh  %s Back",
 			ui.KeyHintStyle.Render("↑"),
 			ui.KeyHintStyle.Render("↓"),
 			ui.KeyHintStyle.Render("Enter"),
-			ui.KeyHintStyle.Render("q"),
+			ui.KeyHintStyle.Render("r"),
+			ui.KeyHintStyle.Render("q/Esc"),
 		)
 	}
 
 	return fmt.Sprintf(
-		"%s/%s Navigate  %s Edit  %s Delete  %s Toggle  %s Back",
+		"%s/%s  %s Edit  %s Delete  %s Toggle  %s Refresh  %s Back",
 		ui.KeyHintStyle.Render("↑"),
 		ui.KeyHintStyle.Render("↓"),
 		ui.KeyHintStyle.Render("Enter"),
 		ui.KeyHintStyle.Render("d"),
 		ui.KeyHintStyle.Render("Space"),
+		ui.KeyHintStyle.Render("r"),
 		ui.KeyHintStyle.Render("q/Esc"),
 	)
 }

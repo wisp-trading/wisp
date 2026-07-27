@@ -53,7 +53,10 @@ func (m *projectCreateModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			}
 			m.done = true
 			m.err = nil
-			m.doneMsg = fmt.Sprintf("Created ./%s\n\nNext: Settings → add keys, then Strategies → Start Live\nor: cd %s/strategies/starter && go mod tidy && go run .", name, name)
+			m.doneMsg = fmt.Sprintf(
+				"Created ./%s\n\nNext:\n  1. Settings → add exchange keys\n  2. Strategies → starter → Start Live\n  or: cd %s/strategies/starter && go mod tidy && go run .",
+				name, name,
+			)
 			return m, nil
 		case "backspace":
 			if len(m.name) > 0 {

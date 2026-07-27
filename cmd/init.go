@@ -16,8 +16,18 @@ func NewInitCommand(handler setup.InitHandler) InitCommandResult {
 	return InitCommandResult{
 		InitCommand: &cobra.Command{
 			Use:   "init <name>",
-			Short: "Create a new Wisp project",
-			RunE:  handler.Handle,
+			Short: "Scaffold a project (strategies/<name> standalone starter)",
+			Long: `Create a new project directory with strategies/starter/:
+  main.go     StartStandalone + Wait
+  config.yml  exchanges/assets only (no secrets)
+  go.mod
+
+Keys go in ~/.wisp/connectors.yml via: wisp → Settings
+
+Example:
+  wisp init my-bot
+  cd my-bot/strategies/starter && go mod tidy && go run .`,
+			RunE: handler.Handle,
 		},
 	}
 }

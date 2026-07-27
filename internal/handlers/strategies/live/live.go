@@ -69,6 +69,16 @@ func (m *liveModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m, nil
 
 	case tea.KeyMsg:
+		// Failed start: any dismiss key goes back (help promises Enter)
+		if m.err != nil && !m.starting {
+			switch msg.String() {
+			case "q", "esc", "enter", " ", "ctrl+c":
+				m.cancel()
+				return m, bubblon.Cmd(bubblon.Close())
+			}
+			return m, nil
+		}
+
 		// If successfully started, allow navigation between buttons
 		if m.started && !m.starting {
 			switch msg.String() {
@@ -82,23 +92,27 @@ func (m *liveModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					m.cursor++
 				}
 				return m, nil
-			case "enter":
+			case "enter", " ":
 				switch m.cursor {
 				case 0:
-					// Back to previous view
 					return m, bubblon.Cmd(bubblon.Close())
 				case 1:
-					// Navigate to monitor view via router
 					return m, func() tea.Msg {
 						return router.NavigateMsg{Route: router.RouteMonitor}
 					}
 				}
+			case "q", "esc":
+				return m, bubblon.Cmd(bubblon.Close())
+			case "ctrl+c":
+				m.cancel()
+				return m, bubblon.Cmd(bubblon.Close())
 			}
+			return m, nil
 		}
 
-		// Common keys work regardless of state
+		// Starting / other
 		switch msg.String() {
-		case "q":
+		case "q", "esc":
 			return m, bubblon.Cmd(bubblon.Close())
 		case "ctrl+c":
 			m.cancel()
@@ -121,27 +135,31 @@ func (m *liveModel) View() string {
 		statusSection = ui.SubtitleStyle.Render("⏳ Starting live trading instance...")
 		helpText = ui.SubtitleStyle.Render("Please wait...")
 	} else if m.err != nil {
-		// Failed to spawn
 		statusIcon := ui.StatusErrorStyle.Render("❌ FAILED TO START")
 		errorMsg := ui.StatusErrorStyle.Render(fmt.Sprintf("\n%v", m.err))
+		hint := ui.MutedStyle.Render(
+			"\nTypical fixes:\n" +
+				"• Settings → add/enable keys for this strategy's exchanges\n" +
+				"• Compile succeeds with main.go (StartStandalone + Wait)\n" +
+				"• Run wisp from the project root (has ./strategies)",
+		)
 
 		statusSection = lipgloss.JoinVertical(
 			lipgloss.Left,
 			statusIcon,
 			errorMsg,
+			hint,
 		)
-		helpText = ui.HelpStyle.Render("Press Enter or q to return")
+		helpText = ui.MutedStyle.Render("↵ / q / Esc  Back")
 	} else {
-		// Successfully spawned - running in background
 		statusIcon := ui.StatusReadyStyle.Render("✅ INSTANCE STARTED")
-		message := ui.SubtitleStyle.Render("Strategy is now running in the background")
+		message := ui.SubtitleStyle.Render("Running as a standalone process")
 
 		details := ui.MutedStyle.Italic(false).
 			Render(
-				"• Trading instance spawned as separate process\n" +
+				"• Separate process (survives CLI exit)\n" +
 					fmt.Sprintf("• Logs: .wisp/instances/%s/stdout.log\n", m.strategy.Name) +
-					"• Use 'Monitor' view to check status and metrics\n" +
-					"• Instance will continue running after CLI exits",
+					"• Monitor → select → S to stop (HTTP shutdown, then force)",
 			)
 
 		statusSection = lipgloss.JoinVertical(
@@ -176,7 +194,7 @@ func (m *liveModel) View() string {
 			monitorButton,
 		)
 
-		helpText = ui.HelpStyle.Render("↑/↓ or tab to navigate • Enter to select • q to quit")
+		helpText = ui.MutedStyle.Render("←→/Tab  ↵ select   q back")
 	}
 
 	content := lipgloss.JoinVertical(

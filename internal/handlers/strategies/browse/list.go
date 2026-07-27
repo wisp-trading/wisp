@@ -23,6 +23,7 @@ type strategyListView struct {
 	height     int
 	// listTop is the content line offset of the first strategy row (for mouse hit testing)
 	listTop         int
+	loadErr         error
 	compileService  strategyTypes.CompileService
 	strategyService config.StrategyConfig
 	detailFactory   StrategyDetailViewFactory
@@ -42,8 +43,18 @@ func newStrategyListView(
 		width:           80,
 		height:          24,
 	}
-	view.strategies, _ = strategyService.FindStrategies()
+	view.refresh()
 	return view
+}
+
+func (m *strategyListView) refresh() {
+	list, err := m.strategyService.FindStrategies()
+	m.loadErr = err
+	if err != nil {
+		m.strategies = nil
+		return
+	}
+	m.strategies = list
 }
 
 func (m *strategyListView) Init() tea.Cmd {
@@ -181,9 +192,12 @@ func (m *strategyListView) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			detailView := m.detailFactory(selectedStrat)
 			return m, bubblon.Open(detailView)
 		case "r":
-			m.strategies, _ = m.strategyService.FindStrategies()
+			m.refresh()
 			if m.cursor >= len(m.strategies) && len(m.strategies) > 0 {
 				m.cursor = len(m.strategies) - 1
+			}
+			if len(m.strategies) == 0 {
+				m.cursor = 0
 			}
 			m.syncPageFromCursor()
 			m.clampCursorToPage()
@@ -193,6 +207,14 @@ func (m *strategyListView) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 }
 
 func (m *strategyListView) View() string {
+	if m.loadErr != nil {
+		return ui.BoxStyle.Render(
+			ui.TitleStyle.Render("STRATEGIES") + "\n\n" +
+				ui.ErrorBoxStyle.Render("❌ "+m.loadErr.Error()) + "\n\n" +
+				ui.MutedStyle.Render("Run wisp from a project root (directory with ./strategies).") + "\n" +
+				ui.MutedStyle.Render("r retry   q back"),
+		)
+	}
 	if len(m.strategies) == 0 {
 		return ui.BoxStyle.Render(
 			ui.TitleStyle.Render("STRATEGIES") + "\n\n" +
@@ -200,7 +222,7 @@ func (m *strategyListView) View() string {
 				ui.MutedStyle.Render("Create New Project from the menu, or:") + "\n" +
 				ui.MutedStyle.Render("  wisp init my-bot") + "\n\n" +
 				ui.MutedStyle.Render("Then: Settings → keys · here → Start Live · Monitor → Stop") + "\n\n" +
-				ui.MutedStyle.Render("q Back"),
+				ui.MutedStyle.Render("r refresh   q back"),
 		)
 	}
 

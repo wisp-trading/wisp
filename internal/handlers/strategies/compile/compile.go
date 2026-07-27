@@ -96,7 +96,7 @@ func (m *compileModel) View() string {
 	strategyName := ui.StrategyNameStyle.Render(m.strategy.Name)
 
 	// Status message
-	status := ui.SubtitleStyle.Render("Building plugin binary...")
+	status := ui.SubtitleStyle.Render("Building standalone binary (go build)...")
 
 	// Progress bar (width 50 characters)
 	progressBar := ui.RenderProgressBar(m.progressValue, 50)

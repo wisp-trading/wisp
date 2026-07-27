@@ -291,7 +291,7 @@ func (m *instanceListModel) View() string {
 			stoppingMsg := fmt.Sprintf("%s Stopping %s...", spinnerChar, selected.ID)
 			b.WriteString(ui.StatusErrorStyle.Render(stoppingMsg))
 			b.WriteString("\n")
-			b.WriteString(ui.SubtitleStyle.Render("Sending shutdown signal (SIGTERM)"))
+			b.WriteString(ui.SubtitleStyle.Render("HTTP /shutdown → wait → force if needed"))
 			b.WriteString("\n")
 		} else {
 			b.WriteString(ui.SubtitleStyle.Render("Stopping instance..."))
@@ -372,11 +372,15 @@ func (m *instanceListModel) renderStopConfirmation() string {
 
 func (m *instanceListModel) renderEmpty() string {
 	box := ui.BoxStyle.Render(
-		lipgloss.JoinVertical(lipgloss.Center,
+		lipgloss.JoinVertical(lipgloss.Left,
 			"",
-			ui.SubtitleStyle.Render("No Running Strategies"),
+			ui.SubtitleStyle.Render("No running strategies"),
 			"",
-			ui.HelpStyle.Render("Start a strategy to begin monitoring"),
+			ui.MutedStyle.Render("1. Strategies → open one → Start Live"),
+			ui.MutedStyle.Render("2. Return here — instances appear when healthy"),
+			ui.MutedStyle.Render("3. Select a row · S to stop"),
+			"",
+			ui.MutedStyle.Render("Run wisp from the project root. Keys: Settings."),
 			"",
 		),
 	)

@@ -31,8 +31,7 @@ func (m *resultModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
 		switch msg.String() {
-		case "q", "enter":
-			// Return to detail view (parent) by closing this result view
+		case "q", "esc", "enter", " ":
 			return m, bubblon.Cmd(bubblon.Close())
 		}
 	}
@@ -48,9 +47,9 @@ func (m *resultModel) View() string {
 	if m.err == nil {
 		// Success
 		statusIcon := ui.StatusReadyStyle.Render("✅ SUCCESS")
-		message := ui.SubtitleStyle.Render("Strategy has been compiled successfully")
+		message := ui.SubtitleStyle.Render("Standalone binary ready")
 		details := ui.MutedStyle.Italic(false).
-			Render("• Plugin binary created\n• Ready for backtest or live trading")
+			Render("• Binary written next to main.go\n• Ready for Start Live")
 
 		statusSection = lipgloss.JoinVertical(
 			lipgloss.Left,

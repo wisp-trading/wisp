@@ -36,26 +36,26 @@ Three things this CLI is for:
 1. New project
    Menu → Create New Project
    Or:  wisp init my-bot
-   Creates strategies/<name>/ with main.go (StartStandalone + Wait).
+   Creates strategies/starter/ with main.go (StartStandalone + Wait).
    No API keys in the project.
 
 2. Exchange keys
-   Menu → Settings
-   Add Hyperliquid / Polymarket / … credentials.
+   Menu → Settings → pick an exchange → fill fields → Save
    Saved to ~/.wisp/connectors.yml (shared by every strategy).
 
 3. Live trading
    Menu → Strategies → open a strategy → Start Live
-   Compiles the binary and runs it.
-   Menu → Monitor → select instance → Stop (HTTP shutdown, then force if needed).
+   Compiles the standalone binary and spawns it.
+   Menu → Monitor → select instance → S Stop
+   (graceful HTTP shutdown, force only if needed).
 
 Tips
-  • Strategy config.yml only lists exchanges/assets — never secrets.
-  • Prefer Hyperliquid perps for production; other venues are beta/experimental.
-  • Strategies list: ← → pages, click a row to open, r refresh.
-  • Settings forms: Tab / Shift+Tab between fields, Enter next, Esc cancel.
-  • q goes back; Ctrl+C quits from the main menu.
+  • Strategy config.yml lists exchanges/assets only — never secrets.
+  • Prefer Hyperliquid perps for production; other venues are beta.
+  • Strategies: ←→ pages · click row · r refresh · q back
+  • Settings form: ↑↓/Tab fields · Enter next/save · Ctrl+X/Esc cancel
+  • Main menu: 1–5 jump · q quit
 `)
-	help := ui.MutedStyle.Render("↵ / q  Back")
+	help := ui.MutedStyle.Render("↵ / q / Esc  Back")
 	return ui.MenuBoxStyle.Width(72).Render("\n" + title + "\n" + body + "\n" + help + "\n")
 }
