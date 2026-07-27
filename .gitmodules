@@ -2,15 +2,3 @@
 	path = sdk
 	url = git@github.com:wisp-trading/sdk.git
 	branch = main
-[submodule "connectors"]
-	path = connectors
-	url = git@github.com:wisp-trading/connectors.git
-	branch = main
-[submodule "backtest"]
-	path = backtest
-	url = git@github.com:wisp-trading/backtest.git
-	branch = main
-[submodule "third_party/polymarket-go-sdk"]
-	path = polymarket-go-sdk
-	url = git@github.com:lwtsn/polymarket-go-sdk.git
-	branch = main
