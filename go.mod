@@ -19,8 +19,8 @@ require (
 	github.com/spf13/afero v1.15.0
 	github.com/spf13/cobra v1.10.1
 	github.com/stretchr/testify v1.11.1
-	github.com/wisp-trading/connectors v0.1.1
-	github.com/wisp-trading/sdk v0.1.1-0.20260727073335-678b421c4c3d
+	github.com/wisp-trading/connectors v0.1.3
+	github.com/wisp-trading/sdk v0.1.1
 	go.uber.org/fx v1.24.0
 	gopkg.in/yaml.v3 v3.0.1
 )
@@ -163,3 +163,5 @@ require (
 	golang.org/x/tools v0.39.0 // indirect
 	howett.net/plist v1.0.1 // indirect
 )
+
+replace github.com/GoPolymarket/polymarket-go-sdk => github.com/lwtsn/polymarket-go-sdk v0.0.0-20260727081153-a4fc97e5cc12
