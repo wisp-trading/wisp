@@ -43,7 +43,7 @@ func (s *liveService) ExecuteStrategy(ctx context.Context, strategy *config.Stra
 	// 1. Pre-validate that we have connectors for this strategy's exchanges
 	connectorConfigs, err := s.connectorService.GetConnectorConfigsForStrategy(strategy.Exchanges)
 	if err != nil {
-		return fmt.Errorf("cannot start strategy '%s': %w\n\nPlease check:\n- exchanges.yml has entries for: %v\n- Required exchanges are enabled\n- Exchange connectors are available in the SDK",
+		return fmt.Errorf("cannot start strategy '%s': %w\n\nPlease check:\n- connectors in ~/.wisp/connectors.yml (CLI Settings)\n- required exchanges enabled: %v\n- exchange connectors available in the SDK",
 			strategy.Name, err, strategy.Exchanges)
 	}
 

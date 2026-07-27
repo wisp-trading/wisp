@@ -60,7 +60,7 @@ See [MONOREPO.md](./MONOREPO.md) for layout details. Blessed strategy packaging:
 
 - Idiomatic Go; `gofmt` / `goimports` required
 - Errors wrapped with `%w` where the chain matters
-- No secrets in git (`exchanges.yml`, `wisp.yml`, `.env` are ignored)
+- No secrets in git (credentials in `~/.wisp/connectors.yml`; `.env` ignored)
 - Prefer interfaces + mockery over hand-rolled test doubles
 
 ## Security

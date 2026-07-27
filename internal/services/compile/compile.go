@@ -10,22 +10,23 @@ import (
 	"github.com/wisp-trading/wisp/pkg/strategy"
 )
 
-// compileService builds strategy packages for live execution.
-// Blessed path: standalone binary (main.go present).
-// Legacy: Go plugin .so when only strategy.go exists without main.
+// compileService builds standalone strategy binaries for live execution.
+// Requires main.go (StartStandalone + Wait). Plugin/.so packaging is removed.
 type compileService struct{}
 
 func NewCompileService() strategy.CompileService {
 	return &compileService{}
 }
 
-// CompileStrategy builds a standalone binary when main.go is present,
-// otherwise falls back to the legacy plugin .so path.
+// CompileStrategy builds a standalone binary; requires main.go.
 func (s *compileService) CompileStrategy(strategyPath string) error {
-	if isStandalone(strategyPath) {
-		return s.compileBinary(strategyPath)
+	if !isStandalone(strategyPath) {
+		return fmt.Errorf(
+			"strategy at %s has no main.go — standalone packaging is required (main + StartStandalone + Wait); plugin .so support has been removed",
+			strategyPath,
+		)
 	}
-	return s.compilePlugin(strategyPath)
+	return s.compileBinary(strategyPath)
 }
 
 func isStandalone(strategyPath string) bool {
@@ -35,11 +36,6 @@ func isStandalone(strategyPath string) bool {
 
 func binaryPath(strategyPath string) string {
 	return filepath.Join(strategyPath, filepath.Base(strategyPath))
-}
-
-func soPath(strategyPath string) string {
-	name := filepath.Base(strategyPath)
-	return filepath.Join(strategyPath, name+".so")
 }
 
 func compileSourceModTime(strategyPath string) (time.Time, error) {
@@ -103,47 +99,7 @@ func (s *compileService) compileBinary(strategyPath string) error {
 	return nil
 }
 
-// compilePlugin is the legacy .so path (demoted).
-func (s *compileService) compilePlugin(strategyPath string) error {
-	strategyName := filepath.Base(strategyPath)
-	strategyGoPath := filepath.Join(strategyPath, "strategy.go")
-	so := soPath(strategyPath)
-
-	if _, err := os.Stat(strategyGoPath); os.IsNotExist(err) {
-		return fmt.Errorf("strategy.go not found (and no main.go for standalone)")
-	}
-
-	goInfo, err := os.Stat(strategyGoPath)
-	if err != nil {
-		return err
-	}
-	if soInfo, err := os.Stat(so); err == nil && soInfo.ModTime().After(goInfo.ModTime()) {
-		return nil
-	}
-
-	_ = os.Remove(so)
-
-	fmt.Printf("🔨 Compiling %s strategy (legacy plugin)...\n", strategyName)
-	fmt.Printf("  ⚠️  Plugin packaging is legacy; prefer main.go + StartStandalone + Wait\n")
-
-	tidyCmd := exec.Command("go", "mod", "tidy")
-	tidyCmd.Dir = strategyPath
-	if out, err := tidyCmd.CombinedOutput(); err != nil {
-		return fmt.Errorf("failed to download dependencies: %s", string(out))
-	}
-
-	outputFileName := strategyName + ".so"
-	cmd := exec.Command("go", "build", "-a", "-buildmode=plugin", "-o", outputFileName, "strategy.go")
-	cmd.Dir = strategyPath
-	if out, err := cmd.CombinedOutput(); err != nil {
-		return fmt.Errorf("compilation failed: %s", string(out))
-	}
-
-	fmt.Printf("✅ Compiled %s.so successfully\n\n", strategyName)
-	return nil
-}
-
-// PreCompileStrategies scans and compiles all strategies in the strategies directory.
+// PreCompileStrategies scans and compiles all strategies with main.go.
 func (s *compileService) PreCompileStrategies(strategiesDir string) map[string]error {
 	errors := make(map[string]error)
 
@@ -168,28 +124,22 @@ func (s *compileService) PreCompileStrategies(strategiesDir string) map[string]e
 	return errors
 }
 
-// IsCompiled reports whether a binary or legacy .so is present.
+// IsCompiled reports whether the standalone binary is present.
 func (s *compileService) IsCompiled(strategyPath string) bool {
-	if _, err := os.Stat(binaryPath(strategyPath)); err == nil {
-		return true
-	}
-	_, err := os.Stat(soPath(strategyPath))
+	_, err := os.Stat(binaryPath(strategyPath))
 	return err == nil
 }
 
-// NeedsRecompile reports whether sources are newer than the artifact.
+// NeedsRecompile reports whether sources are newer than the binary.
 func (s *compileService) NeedsRecompile(strategyPath string) bool {
+	if !isStandalone(strategyPath) {
+		return true
+	}
 	srcTime, err := compileSourceModTime(strategyPath)
 	if err != nil {
 		return true
 	}
-	var art string
-	if isStandalone(strategyPath) {
-		art = binaryPath(strategyPath)
-	} else {
-		art = soPath(strategyPath)
-	}
-	info, err := os.Stat(art)
+	info, err := os.Stat(binaryPath(strategyPath))
 	if err != nil {
 		return true
 	}

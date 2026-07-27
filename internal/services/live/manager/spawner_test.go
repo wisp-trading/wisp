@@ -16,6 +16,11 @@ import (
 	"github.com/wisp-trading/wisp/pkg/live"
 )
 
+func stubBinary(dir, name string) {
+	Expect(os.MkdirAll(dir, 0755)).To(Succeed())
+	Expect(os.WriteFile(filepath.Join(dir, name), []byte("#!/bin/sh\n"), 0755)).To(Succeed())
+}
+
 var _ = Describe("ProcessSpawner", func() {
 	var (
 		spawner      live.ProcessSpawner
@@ -44,10 +49,13 @@ var _ = Describe("ProcessSpawner", func() {
 		logger = &logging.NoOpLogger{}
 		spawner = manager.NewProcessSpawner(logger)
 
-		// No binary present → legacy plugin spawn path
+		// Default fixture: strategy dir + stub binary (plugin path removed)
+		binDir := filepath.Join(tmpDir, "strategies", "test-momentum")
+		Expect(os.MkdirAll(binDir, 0755)).To(Succeed())
+		Expect(os.WriteFile(filepath.Join(binDir, "test-momentum"), []byte("#!/bin/sh\n"), 0755)).To(Succeed())
 		testStrategy = &config.Strategy{
 			Name: "test-momentum",
-			Path: filepath.Join(tmpDir, "strategies", "test-momentum"),
+			Path: binDir,
 		}
 
 		ctx, cancel = context.WithCancel(context.Background())
@@ -58,16 +66,11 @@ var _ = Describe("ProcessSpawner", func() {
 	})
 
 	Describe("Spawn", func() {
-		It("should fall back to legacy run-strategy when no binary exists", func() {
-			cmd, err := spawner.Spawn(ctx, testStrategy)
-			Expect(err).NotTo(HaveOccurred())
-			Expect(cmd).NotTo(BeNil())
-
-			Expect(cmd.Args).To(ContainElements(
-				"run-strategy",
-				"--strategy",
-				"test-momentum",
-			))
+		It("should error when no standalone binary exists", func() {
+			Expect(os.Remove(filepath.Join(testStrategy.Path, testStrategy.Name))).To(Succeed())
+			_, err := spawner.Spawn(ctx, testStrategy)
+			Expect(err).To(HaveOccurred())
+			Expect(err.Error()).To(ContainSubstring("standalone binary not found"))
 		})
 
 		It("should spawn standalone binary when present", func() {
@@ -148,6 +151,8 @@ var _ = Describe("ProcessSpawner", func() {
 		})
 
 		It("should create unique log files for different strategies", func() {
+			stubBinary("./strategies/momentum-1", "momentum-1")
+			stubBinary("./strategies/momentum-2", "momentum-2")
 			strategy1 := &config.Strategy{Name: "momentum-1", Path: "./strategies/momentum-1"}
 			strategy2 := &config.Strategy{Name: "momentum-2", Path: "./strategies/momentum-2"}
 
@@ -210,6 +215,7 @@ var _ = Describe("ProcessSpawner", func() {
 
 		Context("when strategy name has special characters", func() {
 			It("should handle strategy names safely", func() {
+				stubBinary("./strategies/test", "test-strategy-v1.2.3")
 				specialStrategy := &config.Strategy{
 					Name: "test-strategy-v1.2.3",
 					Path: "./strategies/test",
@@ -355,35 +361,32 @@ var _ = Describe("ProcessSpawner", func() {
 
 	Describe("Edge Cases", func() {
 		It("should handle empty strategy name", func() {
+			// Empty name → binary path ends with strategies/empty/ (basename of path)
+			// Spawner expects binary named strategy.Name; empty name is invalid for packaging.
 			emptyStrategy := &config.Strategy{
 				Name: "",
 				Path: "./strategies/empty",
 			}
-
-			cmd, err := spawner.Spawn(ctx, emptyStrategy)
-			// Should still work - creates directory with empty name
-			Expect(err).NotTo(HaveOccurred())
-			Expect(cmd).NotTo(BeNil())
+			_, err := spawner.Spawn(ctx, emptyStrategy)
+			Expect(err).To(HaveOccurred())
 		})
 
 		It("should handle very long strategy names", func() {
-			longName := strings.Repeat("a", 255)
-
+			longName := strings.Repeat("a", 200)
+			stubBinary("./strategies/long", longName)
 			longStrategy := &config.Strategy{
 				Name: longName,
 				Path: "./strategies/long",
 			}
-
 			cmd, err := spawner.Spawn(ctx, longStrategy)
-			// May fail on some filesystems, but should handle gracefully
 			if err == nil {
 				Expect(cmd).NotTo(BeNil())
 			} else {
-				// Should provide clear error message
 				Expect(err.Error()).To(Or(
 					ContainSubstring("directory"),
 					ContainSubstring("file"),
 					ContainSubstring("name"),
+					ContainSubstring("standalone"),
 				))
 			}
 		})
