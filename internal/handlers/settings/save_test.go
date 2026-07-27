@@ -28,8 +28,8 @@ func (s *stubConfig) UpdateConnector(c config.Connector) error {
 	s.updated = &c
 	return nil
 }
-func (s *stubConfig) RemoveConnector(string) error           { return nil }
-func (s *stubConfig) EnableConnector(string, bool) error     { return nil }
+func (s *stubConfig) RemoveConnector(string) error       { return nil }
+func (s *stubConfig) EnableConnector(string, bool) error { return nil }
 
 type stubConnectorSvc struct {
 	fields []string
