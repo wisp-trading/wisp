@@ -52,7 +52,9 @@ Three things this CLI is for:
 Tips
   • Strategy config.yml only lists exchanges/assets — never secrets.
   • Prefer Hyperliquid perps for production; other venues are beta/experimental.
-  • q goes back; Ctrl+C quits the app from the main menu.
+  • Strategies list: ← → pages, click a row to open, r refresh.
+  • Settings forms: Tab / Shift+Tab between fields, Enter next, Esc cancel.
+  • q goes back; Ctrl+C quits from the main menu.
 `)
 	help := ui.MutedStyle.Render("↵ / q  Back")
 	return ui.MenuBoxStyle.Width(72).Render("\n" + title + "\n" + body + "\n" + help + "\n")

@@ -104,7 +104,12 @@ func (h *rootHandler) runMainMenu() error {
 	}
 
 	h.router.SetInitialView(m)
-	p := tea.NewProgram(h.router, tea.WithAltScreen())
+	// Mouse cell motion: click list rows / better form focus where the terminal supports it.
+	p := tea.NewProgram(
+		h.router,
+		tea.WithAltScreen(),
+		tea.WithMouseCellMotion(),
+	)
 	_, err := p.Run()
 	return err
 }
