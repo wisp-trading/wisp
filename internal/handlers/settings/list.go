@@ -104,13 +104,11 @@ func (m *ConnectorListModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					createView := m.formFactory(selectedExchange, false)
 					return m, bubblon.Open(createView)
 				}
-			} else {
+			} else if m.cursor < len(m.configured) {
 				// Edit configured connector
-				if m.cursor < len(m.configured) {
-					selectedConnectorName := m.configured[m.cursor].Name
-					editView := m.formFactory(selectedConnectorName, true)
-					return m, bubblon.Open(editView)
-				}
+				selectedConnectorName := m.configured[m.cursor].Name
+				editView := m.formFactory(selectedConnectorName, true)
+				return m, bubblon.Open(editView)
 			}
 		case "d":
 			// Delete only works on configured connectors

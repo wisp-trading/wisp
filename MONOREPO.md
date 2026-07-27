@@ -70,8 +70,22 @@ See [`examples/reference-standalone`](./examples/reference-standalone) for the b
 ## Green path
 
 ```bash
+make help    # developer targets
 make smoke   # builds CLI + examples/reference-standalone binary
+make ci      # local stand-in for GitHub Actions (verify, vet, lint, test, smoke)
 ```
 
 TUI Start Live compiles `strategies/<name>/` as a **standalone binary** when `main.go` exists.
+
+## CI
+
+GitHub Actions (`.github/workflows/`):
+
+| Workflow | Purpose |
+|----------|---------|
+| `ci.yml` | modules verify + tidy, golangci-lint, race tests, packaging smoke |
+| `security.yml` | `govulncheck` on PR/main + weekly |
+| `release.yml` | multi-platform binaries on `v*` tags |
+
+Always runs with `GOWORK=off` and the public module proxy so checksums match the sumdb.
 

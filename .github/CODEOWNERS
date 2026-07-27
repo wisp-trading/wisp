@@ -1,0 +1,10 @@
+# Default reviewers for product surface.
+# https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/about-code-owners
+
+*       @lwtsn
+
+# Workflows and release surface — keep tight
+/.github/               @lwtsn
+/Makefile               @lwtsn
+/go.mod                 @lwtsn
+/go.sum                 @lwtsn

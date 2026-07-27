@@ -4,19 +4,19 @@
 
 **Fast, deterministic backtesting and live trading for algorithmic strategies.**
 
+[![CI](https://github.com/wisp-trading/wisp/actions/workflows/ci.yml/badge.svg)](https://github.com/wisp-trading/wisp/actions/workflows/ci.yml)
+[![Security](https://github.com/wisp-trading/wisp/actions/workflows/security.yml/badge.svg)](https://github.com/wisp-trading/wisp/actions/workflows/security.yml)
 [![Go Version](https://img.shields.io/badge/Go-1.26+-00ADD8?style=flat&logo=go)](https://go.dev/)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](./LICENSE)
+[![Go Report Card](https://goreportcard.com/badge/github.com/wisp-trading/wisp)](https://goreportcard.com/report/github.com/wisp-trading/wisp)
 [![Documentation](https://img.shields.io/badge/docs-usewisp.dev-blue)](https://usewisp.dev/docs)
+[![Release](https://img.shields.io/github/v/release/wisp-trading/wisp?include_prereleases&sort=semver)](https://github.com/wisp-trading/wisp/releases)
 
 *Build, backtest, and deploy trading strategies with a simple TUI interface.*
 
-[Quick Start](https://usewisp.dev/docs/getting-started) • [Features](#features) • [Documentation](https://usewisp.dev/docs) • [Examples](https://usewisp.dev/docs/examples)
+[Quick Start](https://usewisp.dev/docs/getting-started) · [Features](#features) · [Docs](https://usewisp.dev/docs) · [Contributing](./CONTRIBUTING.md) · [Security](./SECURITY.md)
 
 </div>
-
----
-
-[![Go Report Card](https://goreportcard.com/badge/github.com/wisp-trading/wisp)](https://goreportcard.com/report/github.com/wisp-trading/wisp)
 
 ---
 

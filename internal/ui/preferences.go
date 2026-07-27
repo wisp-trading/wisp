@@ -79,19 +79,17 @@ func SavePreferences(prefs *Preferences) error {
 	return nil
 }
 
-// LoadThemeFromPreferences loads and applies the theme from saved preferences
+// LoadThemeFromPreferences loads and applies the theme from saved preferences.
+// Missing preference files are treated as success (default theme remains active).
 func LoadThemeFromPreferences() error {
 	prefs, err := LoadPreferences()
 	if err != nil {
-		// If we can't load preferences, just use default theme
-		return nil
+		// First run / unreadable prefs — default theme is intentional.
+		prefs = &Preferences{Theme: "default"}
 	}
 
-	// Apply the saved theme
 	if err := SetTheme(prefs.Theme); err != nil {
-		// If the saved theme doesn't exist, fall back to default
-		_ = SetTheme("default")
+		return SetTheme("default")
 	}
-
 	return nil
 }

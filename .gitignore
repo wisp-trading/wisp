@@ -1,48 +1,40 @@
-# Binaries for programs and plugins
+# Binaries
 *.exe
 *.dll
 *.so
 *.dylib
 /wisp
-.claude
-
-# Output directories
 /bin/
 build/
-results/
-
-# Vendor directory
-vendor/
-
-# Test binary output
 *.test
 
-# IDE settings
+# Example build artifacts
+examples/reference-standalone/reference-standalone
+
+# Tooling / editor
+.claude
 .idea/
 .vscode/
+*.swp
+*~
 
 # Logs and temporary files
 *.log
 *.tmp
 *.out
-
-# Coverage
 coverage.out
+coverage.html
 
-# Generated
-docs/
+# Vendor / results
+vendor/
+results/
 
-# Secrets
+# Secrets & local config
 .env
+.env.*
 exchanges.yml
 wisp.yml
+!.env.example
 
 # macOS
 .DS_Store
-
-# Built strategy example binary
-examples/reference-standalone/reference-standalone
-
-# Debug
-debug/
-*.txt

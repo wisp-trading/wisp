@@ -1,0 +1,56 @@
+# golangci-lint v2 — https://golangci-lint.run/docs/configuration/file/
+version: "2"
+
+run:
+  relative-path-mode: gomod
+
+linters:
+  default: standard
+  enable:
+    - asasalint
+    - bidichk
+    - bodyclose
+    - copyloopvar
+    - durationcheck
+    - errorlint
+    - gocritic
+    - nilerr
+    - unconvert
+  settings:
+    gocritic:
+      # Bubble Tea Update handlers often use type-switch / status chains by design.
+      disabled-checks:
+        - singleCaseSwitch
+        - ifElseChain
+    misspell:
+      locale: US
+  exclusions:
+    generated: lax
+    paths:
+      - third_party$
+      - builtin$
+      - examples$
+      - mocks$
+      - results$
+    rules:
+      # Domain abbreviation for Strategy, not a typo of "start".
+      - path: (.+)\.go$
+        text: "`strat` is a misspelling of `start`"
+        linters: [misspell]
+      # Accept British spelling in user-facing / historical strings.
+      - path: (.+)\.go$
+        text: "`cancelled` is a misspelling of `canceled`"
+        linters: [misspell]
+
+formatters:
+  enable:
+    - gofmt
+    - goimports
+  exclusions:
+    generated: lax
+    paths:
+      - mocks$
+
+issues:
+  max-issues-per-linter: 0
+  max-same-issues: 0

@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Documentation
+    url: https://usewisp.dev/docs
+    about: Guides, API references, and examples
+  - name: Discussions
+    url: https://github.com/wisp-trading/wisp/discussions
+    about: Questions and design conversations (if enabled)

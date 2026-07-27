@@ -78,4 +78,3 @@ func (m mainMenuModel) View() string {
 
 	return ui.MenuBoxStyle.Render(s)
 }
-

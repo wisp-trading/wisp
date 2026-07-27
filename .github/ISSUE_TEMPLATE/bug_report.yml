@@ -1,0 +1,61 @@
+name: Bug report
+description: Something is broken or behaves incorrectly
+title: "bug: "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for helping make Wisp better. Please fill in as much as you can.
+
+  - type: textarea
+    id: summary
+    attributes:
+      label: Summary
+      description: What went wrong in one or two sentences?
+      placeholder: "TUI Start Live hangs after compile…"
+    validations:
+      required: true
+
+  - type: textarea
+    id: repro
+    attributes:
+      label: Steps to reproduce
+      description: Minimal, ordered steps.
+      placeholder: |
+        1. Clone with --recurse-submodules
+        2. make build
+        3. …
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+    validations:
+      required: true
+
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual behavior
+      description: Include logs / stack traces when possible.
+    validations:
+      required: true
+
+  - type: input
+    id: version
+    attributes:
+      label: Wisp / Go version
+      description: Output of `wisp version` and `go version`.
+      placeholder: "wisp … / go1.26.5"
+    validations:
+      required: true
+
+  - type: textarea
+    id: env
+    attributes:
+      label: Environment
+      description: OS, shell, exchange(s), anything else relevant.
+      placeholder: "macOS 15 / zsh / hyperliquid testnet"

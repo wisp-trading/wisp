@@ -36,12 +36,8 @@ func provideInstanceManager(params instanceManagerParams) live.InstanceManager {
 func initializeInstanceManager(lc fx.Lifecycle, manager live.InstanceManager) {
 	lc.Append(fx.Hook{
 		OnStart: func(ctx context.Context) error {
-			// Load instances from state file if they exist
-			if err := manager.LoadRunning(ctx); err != nil {
-				// Don't fail startup if we can't load instances - just log it
-				// The state file might not exist on first run
-				return nil
-			}
+			// Best-effort restore. Missing state on first run is expected.
+			_ = manager.LoadRunning(ctx)
 			return nil
 		},
 	})
