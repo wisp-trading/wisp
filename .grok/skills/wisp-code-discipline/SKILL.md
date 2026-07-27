@@ -65,15 +65,26 @@ GetConnectorConfigsForStrategy → MapToSDKConfig + Validate → connector.Confi
 StartStandalone            → Initialize connectors + lifecycle
 ```
 
-## Clarity backlog (parked — not blocking)
+## Redundancy sweep
 
-- `instruments` in strategy YAML unused for routing (by connector MarketType)
-- Soft-skip unregistered connectors in runtime.initializeConnectors
-- Zombie `pkg/signal` module; Predict `PredictionSignal` vs `Signal` naming
-- Nested `spot/spot` package geography; `package packages`
-- Executor/router naming pile-up; profiling measures dispatch
-- Spot/perp/options copy-paste shells; dual analytics surfaces
-- No release tags unless ship-worthy change
+```bash
+cd sdk && make redundancy   # or: go run ./tools/redundancy
+```
+
+Uses product-surface root (`wisp` blank-import) + structural checks. Prefer deleting
+zombies before adding markets. Mocks: mockery only.
+
+## Clarity / redundancy backlog (parked)
+
+**Kill soon (safe DX wins):** empty `pkg/signal`, `HookPlugin`, strategy name constants,
+legacy `base/store/activity/{position,trade}`, fossil WispExecutor comment, `pkg/testing` Module.
+
+**Market pattern (AAA “clone a shell”):** nested `spot/spot` tax; prediction `predict` asymmetry;
+spot/perp/options copy-paste shells; dual analytics.
+
+**Runtime honesty:** `instruments` YAML unused; soft-skip unregistered connectors.
+
+**Process:** no release tags unless ship-worthy change.
 
 ## When tempted to invent
 
