@@ -16,7 +16,7 @@ require (
 	github.com/spf13/cobra v1.10.1
 	github.com/stretchr/testify v1.11.1
 	github.com/wisp-trading/connectors v0.1.3
-	github.com/wisp-trading/sdk v0.1.10-0.20260727113257-9013f80ef389
+	github.com/wisp-trading/sdk v0.1.10-0.20260727113621-09de78a18adf
 	go.uber.org/fx v1.24.0
 	gopkg.in/yaml.v3 v3.0.1
 )

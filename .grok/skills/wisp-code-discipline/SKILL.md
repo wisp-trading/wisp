@@ -76,13 +76,12 @@ zombies before adding markets. Mocks: mockery only.
 
 ## Clarity / redundancy backlog (parked)
 
-**Kill soon (safe DX wins):** empty `pkg/signal`, `HookPlugin`, strategy name constants,
-legacy `base/store/activity/{position,trade}`, fossil WispExecutor comment, `pkg/testing` Module.
+**Market shell (standard layout):** `markets/<domain>/{module,facade,types,signal,executor,store,ingestor}`
+— clone that tree; domain Module Provides `facade.New*`; add Module to `pkg/modules.go`.
 
-**Market pattern (AAA “clone a shell”):** nested `spot/spot` tax; prediction `predict` asymmetry;
-spot/perp/options copy-paste shells; dual analytics.
-
-**Runtime honesty:** `instruments` YAML unused; soft-skip unregistered connectors.
+**Still open:** spot/perp/options internal copy-paste (watchlist/assets); dual analytics;
+`instruments` YAML unused; soft-skip unregistered connectors; `package packages` rename;
+optional `pkg/testing` trim.
 
 **Process:** no release tags unless ship-worthy change.
 
