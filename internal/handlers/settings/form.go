@@ -452,8 +452,7 @@ func (m *ConnectorFormModel) View() string {
 }
 
 func (m *ConnectorFormModel) renderConfirmExit(under string) string {
-	stay := "  Stay  "
-	leave := "  Leave  "
+	var stay, leave string
 	if m.confirmCursor == 0 {
 		stay = ui.SelectedItemStyle.Render("[ Stay ]")
 		leave = ui.MutedStyle.Render("  Leave  ")

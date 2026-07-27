@@ -116,9 +116,7 @@ func TestNewConnectorLeaveGoesBack(t *testing.T) {
 		confirmExit:   true,
 		confirmCursor: 1,
 	}
-	updated, cmd := m.Update(tea.KeyMsg{Type: tea.KeyEnter})
-	m = updated.(*ConnectorFormModel)
-	_ = cmd
+	_, _ = m.Update(tea.KeyMsg{Type: tea.KeyEnter})
 	if r.backs != 1 {
 		t.Fatalf("expected Back() once, got %d", r.backs)
 	}
