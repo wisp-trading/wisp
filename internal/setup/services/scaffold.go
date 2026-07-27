@@ -6,7 +6,6 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/fatih/color"
 	"github.com/spf13/afero"
 	"github.com/wisp-trading/wisp/internal/setup/types"
 )
@@ -39,9 +38,7 @@ func (s *scaffolder) CreateProjectWithStrategy(name, strategyExample string) err
 	// Sanitize strategy folder
 	strategyExample = strings.ReplaceAll(strategyExample, " ", "_")
 
-	green := color.New(color.FgGreen, color.Bold)
-	fmt.Printf("Creating Wisp project: %s\n\n", green.Sprint(name))
-
+	// Quiet: no stdout (TUI hosts this path). CLI init prints its own summary.
 	if exists, _ := afero.DirExists(s.fs, name); exists {
 		return fmt.Errorf("directory '%s' already exists", name)
 	}
@@ -60,8 +57,6 @@ func (s *scaffolder) CreateProjectWithStrategy(name, strategyExample string) err
 		_ = os.RemoveAll(name)
 		return err
 	}
-
-	s.printSuccess(name, strategyExample)
 	return nil
 }
 
@@ -192,7 +187,6 @@ func (s *Strategy) run(ctx context.Context) {
 		if err := os.WriteFile(path, []byte(body), 0o644); err != nil {
 			return fmt.Errorf("write %s: %w", name, err)
 		}
-		fmt.Printf("  strategies/%s/%s\n", strategy, name)
 	}
 	return nil
 }
@@ -228,7 +222,6 @@ Do not put API keys in this repo.
 	if err := os.WriteFile(filepath.Join(name, "README.md"), []byte(readme), 0o644); err != nil {
 		return err
 	}
-	fmt.Printf("  README.md\n")
 
 	gitignore := `# Never commit secrets
 .env
@@ -251,16 +244,21 @@ strategies/*/*~
 	if err := os.WriteFile(filepath.Join(name, ".gitignore"), []byte(gitignore), 0o644); err != nil {
 		return err
 	}
-	fmt.Printf("  .gitignore\n")
 	return nil
 }
 
-func (s *scaffolder) printSuccess(name, strategyExample string) {
-	blue := color.New(color.FgBlue)
-	fmt.Printf("\n✅ Project created\n\n")
-	fmt.Printf("Next:\n")
-	fmt.Printf("  1. %s   # Settings → add exchange keys → ~/.wisp/connectors.yml\n", blue.Sprint("wisp"))
-	fmt.Printf("  2. %s\n", blue.Sprint("cd "+filepath.Join(name, "strategies", strategyExample)+" && go mod tidy"))
-	fmt.Printf("  3. %s   # or: wisp → Strategies → Start Live\n", blue.Sprint("go run ."))
-	fmt.Printf("  4. %s   # Monitor → select → Stop\n", blue.Sprint("wisp"))
+// FormatProjectCreatedMsg is the post-init summary for CLI (not used under TUI).
+func FormatProjectCreatedMsg(name, strategyExample string) string {
+	if strategyExample == "" {
+		strategyExample = "starter"
+	}
+	strat := filepath.Join(name, "strategies", strategyExample)
+	return fmt.Sprintf(`✅ Project created: ./%s
+
+Next:
+  1. wisp                         # Settings → add exchange keys → ~/.wisp/connectors.yml
+  2. cd %s && go mod tidy
+  3. go run .                     # or: wisp → Strategies → Start Live
+  4. wisp                         # Monitor → select → Stop
+`, name, strat)
 }

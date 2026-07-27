@@ -75,6 +75,11 @@ func TestWalkthrough_SettingsListEscBack(t *testing.T) {
 		func(string, bool) tea.Model { return nil },
 		func(string) tea.Model { return nil },
 	)
+	// Backspace must NOT leave (form-cancel key; accidental exits)
+	_, _ = list.Update(tea.KeyMsg{Type: tea.KeyBackspace})
+	if r.backs != 0 {
+		t.Fatalf("backspace should not leave settings, backs=%d", r.backs)
+	}
 	updated, _ := list.Update(tea.KeyMsg{Type: tea.KeyEsc})
 	_ = updated
 	if r.backs != 1 {

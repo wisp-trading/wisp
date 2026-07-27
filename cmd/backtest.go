@@ -15,11 +15,16 @@ type BacktestCommandResult struct {
 func NewBacktestCommand(handler backtesting.BacktestHandler) BacktestCommandResult {
 	cmd := &cobra.Command{
 		Use:   "backtest",
-		Short: "Run backtests",
-		RunE:  handler.Handle,
+		Short: "Unavailable — use TUI Start Live for strategies",
+		Long: `Backtest simulation is not shipped in this CLI build.
+
+Use the supported loop instead:
+  wisp init my-bot
+  wisp            # Settings → keys · Strategies → Start Live · Monitor`,
+		RunE: handler.Handle,
 	}
 
-	cmd.Flags().String("config", "", "Path to backtest config file (for CLI mode)")
+	cmd.Flags().String("config", "", "Reserved (backtest not available)")
 
 	return BacktestCommandResult{
 		BacktestCommand: cmd,

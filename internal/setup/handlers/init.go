@@ -1,7 +1,10 @@
 package handlers
 
 import (
+	"fmt"
+
 	"github.com/spf13/cobra"
+	"github.com/wisp-trading/wisp/internal/setup/services"
 	"github.com/wisp-trading/wisp/internal/setup/types"
 )
 
@@ -18,16 +21,23 @@ func NewInitHandler(scaffoldService types.ScaffoldService) types.InitHandler {
 
 func (h *initHandler) Handle(cmd *cobra.Command, args []string) error {
 	if len(args) == 0 {
-		// Run interactive TUI flow
 		strategyExample, projectName, err := RunInitTUI()
 		if err != nil {
 			return err
 		}
-		return h.scaffoldService.CreateProjectWithStrategy(projectName, strategyExample)
+		if err := h.scaffoldService.CreateProjectWithStrategy(projectName, strategyExample); err != nil {
+			return err
+		}
+		_, _ = fmt.Fprint(cmd.OutOrStdout(), services.FormatProjectCreatedMsg(projectName, strategyExample))
+		return nil
 	}
 
 	name := args[0]
-	return h.scaffoldService.CreateProject(name)
+	if err := h.scaffoldService.CreateProject(name); err != nil {
+		return err
+	}
+	_, _ = fmt.Fprint(cmd.OutOrStdout(), services.FormatProjectCreatedMsg(name, "starter"))
+	return nil
 }
 
 func (h *initHandler) HandleWithStrategy(strategyExample, name string) error {

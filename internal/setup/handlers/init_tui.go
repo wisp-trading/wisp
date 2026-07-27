@@ -9,110 +9,59 @@ import (
 	"github.com/wisp-trading/wisp/internal/ui"
 )
 
-// Screen types for init flow
-type InitScreen int
-
-const (
-	InitScreenStrategy InitScreen = iota
-	InitScreenProjectName
-)
-
-// Strategy templates
+// StrategyTemplate is the init picker row (maps to strategies/<SDKExample>/).
 type StrategyTemplate struct {
 	Name        string
 	DisplayName string
 	Description string
 	Icon        string
-	SDKExample  string // Maps to SDK examples directory
+	SDKExample  string
 }
 
-// InitTUIModel represents the init flow TUI state
+// InitTUIModel — project name only (single starter template; no fake multi-template fetch).
 type InitTUIModel struct {
-	screen           InitScreen
-	cursor           int
-	strategies       []StrategyTemplate
-	selectedStrategy *StrategyTemplate
+	selectedStrategy StrategyTemplate
 	projectName      string
 	projectNameInput string
 	err              error
+	done             bool
+	cancelled        bool
 }
 
-func NewInitTUIModel(strategies []StrategyTemplate) InitTUIModel {
-	return InitTUIModel{
-		screen:     InitScreenStrategy,
-		strategies: strategies,
-	}
+func NewInitTUIModel(strategy StrategyTemplate) InitTUIModel {
+	return InitTUIModel{selectedStrategy: strategy}
 }
 
-func (m InitTUIModel) Init() tea.Cmd {
-	return nil
-}
+func (m InitTUIModel) Init() tea.Cmd { return nil }
 
 func (m InitTUIModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
-	switch m.screen {
-	case InitScreenStrategy:
-		return m.updateStrategySelection(msg)
-	case InitScreenProjectName:
-		return m.updateProjectName(msg)
-	}
-	return m, nil
-}
-
-func (m InitTUIModel) updateStrategySelection(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
 		switch msg.String() {
 		case "ctrl+c", "q", "esc":
+			m.cancelled = true
 			return m, tea.Quit
-		case "up", "k":
-			if m.cursor > 0 {
-				m.cursor--
-			}
-		case "down", "j":
-			if m.cursor < len(m.strategies)-1 {
-				m.cursor++
-			}
 		case "enter":
-			if len(m.strategies) > 0 {
-				m.selectedStrategy = &m.strategies[m.cursor]
-				m.screen = InitScreenProjectName
-			}
-			return m, nil
-		}
-	}
-	return m, nil
-}
-
-func (m InitTUIModel) updateProjectName(msg tea.Msg) (tea.Model, tea.Cmd) {
-	switch msg := msg.(type) {
-	case tea.KeyMsg:
-		switch msg.String() {
-		case "ctrl+c":
-			return m, tea.Quit
-		case "esc":
-			// Go back to strategy selection
-			m.screen = InitScreenStrategy
-			m.projectNameInput = ""
-			return m, nil
-		case "enter":
-			if m.projectNameInput == "" {
+			if strings.TrimSpace(m.projectNameInput) == "" {
 				m.err = fmt.Errorf("project name cannot be empty")
 				return m, nil
 			}
-			// Convert spaces to underscores
-			m.projectName = strings.ReplaceAll(m.projectNameInput, " ", "_")
+			m.projectName = strings.ReplaceAll(strings.TrimSpace(m.projectNameInput), " ", "_")
+			m.done = true
+			m.err = nil
 			return m, tea.Quit
 		case "backspace":
 			if len(m.projectNameInput) > 0 {
 				m.projectNameInput = m.projectNameInput[:len(m.projectNameInput)-1]
 			}
+			m.err = nil
 		default:
-			// Only allow alphanumeric, spaces, underscores, and hyphens
 			if len(msg.String()) == 1 {
 				char := msg.String()[0]
 				if (char >= 'a' && char <= 'z') || (char >= 'A' && char <= 'Z') ||
 					(char >= '0' && char <= '9') || char == '_' || char == '-' || char == ' ' {
 					m.projectNameInput += msg.String()
+					m.err = nil
 				}
 			}
 		}
@@ -121,82 +70,24 @@ func (m InitTUIModel) updateProjectName(msg tea.Msg) (tea.Model, tea.Cmd) {
 }
 
 func (m InitTUIModel) View() string {
-	switch m.screen {
-	case InitScreenStrategy:
-		return m.viewStrategySelection()
-	case InitScreenProjectName:
-		return m.viewProjectName()
-	}
-	return ""
-}
-
-func (m InitTUIModel) viewStrategySelection() string {
-	title := ui.TitleStyle.Render("🆕 CREATE NEW PROJECT")
-
+	title := ui.TitleStyle.Render("🆕  Create New Project")
 	var s string
 	s += "\n" + title + "\n\n"
-
-	if len(m.strategies) == 0 {
-		s += ui.MutedStyle.Render("No strategies available. Check SDK connection.") + "\n\n"
-		s += ui.MutedStyle.Render("q Quit")
-		return ui.MenuBoxStyle.Width(70).Render(s)
-	}
-
-	s += ui.MutedStyle.Render("Select a strategy template to get started:") + "\n\n"
-
-	for i, strategy := range m.strategies {
-		cursor := "  "
-		icon := strategy.Icon
-		if icon == "" {
-			icon = "🎯"
-		}
-
-		if m.cursor == i {
-			cursor = "▶ "
-			s += ui.SelectedItemStyle.Render(cursor+icon+" "+strategy.DisplayName) + "\n"
-			s += ui.DescriptionStyle.Render(strategy.Description) + "\n"
-		} else {
-			s += ui.ItemStyle.Render(cursor+icon+" "+strategy.DisplayName) + "\n"
-		}
-		if i < len(m.strategies)-1 {
-			s += "\n"
-		}
-	}
-
-	s += "\n\n" + ui.MutedStyle.Render("↑↓/jk Navigate  ↵ Select  q Quit")
-
-	return ui.MenuBoxStyle.Width(70).Render(s)
-}
-
-func (m InitTUIModel) viewProjectName() string {
-	title := ui.TitleStyle.Render("🆕 CREATE NEW PROJECT")
-
-	var s string
-	s += "\n" + title + "\n\n"
-	s += ui.LabelStyle.Width(0).Render(fmt.Sprintf("Selected Strategy: %s", m.selectedStrategy.DisplayName)) + "\n\n"
-	s += ui.MutedStyle.Render("Enter a name for your project:") + "\n"
-	s += ui.MutedStyle.Render("(Spaces will be converted to underscores)") + "\n\n"
-
-	s += ui.LabelStyle.Width(0).Render("Project Name: ") + ui.InputStyle.Render(m.projectNameInput+"_") + "\n\n"
-
+	s += ui.MutedStyle.Render("Template: ") + ui.ValueStyle.Render(m.selectedStrategy.DisplayName) + "\n"
+	s += ui.MutedStyle.Render(m.selectedStrategy.Description) + "\n\n"
+	s += ui.MutedStyle.Render("Keys stay in Settings (~/.wisp/connectors.yml) — not in the project.") + "\n\n"
+	s += ui.LabelStyle.Width(0).Render("Project name: ") + ui.InputStyle.Render(m.projectNameInput+"_") + "\n\n"
 	if m.err != nil {
 		s += ui.ErrorBoxStyle.Width(0).Render("✗ "+m.err.Error()) + "\n\n"
 	}
-
-	s += ui.MutedStyle.Render("↵ Create  ⎋ Back  ^C Cancel")
-
-	return ui.MenuBoxStyle.Width(70).Render(s)
+	s += ui.MutedStyle.Render("↵ Create   q/Esc Cancel")
+	return ui.MenuBoxStyle.Width(72).Render(s)
 }
 
-// RunInitTUI runs the init TUI flow and returns the selected strategy and project name
+// RunInitTUI runs init and returns (strategyFolder, projectName).
 func RunInitTUI() (strategy string, projectName string, err error) {
-	// Load available strategies from SDK
-	strategies, err := LoadStrategies()
-	if err != nil {
-		return "", "", fmt.Errorf("failed to load strategies: %w", err)
-	}
-
-	m := NewInitTUIModel(strategies)
+	tpl := starterTemplate()
+	m := NewInitTUIModel(tpl)
 	p := tea.NewProgram(m, tea.WithAltScreen())
 
 	finalModel, err := p.Run()
@@ -205,61 +96,24 @@ func RunInitTUI() (strategy string, projectName string, err error) {
 	}
 
 	result := finalModel.(InitTUIModel)
-	if result.selectedStrategy == nil || result.projectName == "" {
+	if result.cancelled || !result.done || result.projectName == "" {
 		return "", "", fmt.Errorf("initialization cancelled")
 	}
-
 	return result.selectedStrategy.SDKExample, result.projectName, nil
 }
 
-// LoadStrategies loads strategy metadata from SDK or uses fallback
+// LoadStrategies returns the supported starter template (tests / callers).
 func LoadStrategies() ([]StrategyTemplate, error) {
-	// Try to fetch from SDK
-	metadata, err := fetchFromSDK()
-	if err == nil && len(metadata) > 0 {
-		return metadata, nil
-	}
-
-	// Fallback to hardcoded list if SDK fetch fails
-	return getFallbackStrategies(), nil
+	return []StrategyTemplate{starterTemplate()}, nil
 }
 
-// fetchFromSDK attempts to fetch strategy metadata from SDK repository
-func fetchFromSDK() ([]StrategyTemplate, error) {
-	metadata, err := services.FetchAvailableStrategies()
-	if err != nil {
-		return nil, err
-	}
-
-	// Convert to StrategyTemplate
-	templates := make([]StrategyTemplate, 0, len(metadata))
-	for _, m := range metadata {
-		icon := m.Icon
-		if icon == "" {
-			icon = services.GetDefaultIcon(m.Type)
-		}
-
-		templates = append(templates, StrategyTemplate{
-			Name:        m.Name,
-			DisplayName: m.DisplayName,
-			Description: m.Description,
-			Icon:        icon,
-			SDKExample:  m.SDKExample,
-		})
-	}
-
-	return templates, nil
-}
-
-// getFallbackStrategies returns local templates (no remote clone).
-func getFallbackStrategies() []StrategyTemplate {
-	return []StrategyTemplate{
-		{
-			Name:        "starter",
-			DisplayName: "Starter (standalone)",
-			Description: "main.go + StartStandalone + Wait — keys via Settings",
-			Icon:        "🚀",
-			SDKExample:  "starter",
-		},
+func starterTemplate() StrategyTemplate {
+	meta := services.StarterTemplate()
+	return StrategyTemplate{
+		Name:        meta.Name,
+		DisplayName: meta.DisplayName,
+		Description: meta.Description,
+		Icon:        meta.Icon,
+		SDKExample:  meta.SDKExample,
 	}
 }

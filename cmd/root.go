@@ -25,12 +25,14 @@ Core loop (TUI is the default):
 Strategies are standalone binaries (main.go + StartStandalone + Wait).
 Project config.yml lists exchanges/assets only — never secrets.
 
-Examples:
-  wisp                      Interactive menu
-  wisp init my-bot          Scaffold project with strategies/starter
+Commands:
+  wisp                 Interactive menu (default)
+  wisp init my-bot     Scaffold strategies/starter
   wisp version
-  wisp --cli                Cobra help (subcommand mode)
-  wisp live --cli --strategy starter`,
+  wisp theme           List / set TUI theme
+  wisp --cli           Cobra help
+
+Note: backtest / analyze subcommands are reserved and currently unavailable.`,
 		RunE: handler.Handle,
 	}
 

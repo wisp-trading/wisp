@@ -15,11 +15,14 @@ type AnalyzeCommandResult struct {
 func NewAnalyzeCommand(handler backtesting.AnalyzeHandler) AnalyzeCommandResult {
 	cmd := &cobra.Command{
 		Use:   "analyze",
-		Short: "Analyze backtest results",
-		RunE:  handler.Handle,
+		Short: "Unavailable — no backtest results pipeline yet",
+		Long: `Result analysis depends on backtest, which is not available in this build.
+
+Use live monitoring instead: wisp → Monitor`,
+		RunE: handler.Handle,
 	}
 
-	cmd.Flags().String("path", "./results", "Path to results directory")
+	cmd.Flags().String("path", "./results", "Reserved (analyze not available)")
 
 	return AnalyzeCommandResult{
 		AnalyzeCommand: cmd,

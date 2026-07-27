@@ -1,11 +1,13 @@
 package services
 
 import (
+	"fmt"
+
 	"github.com/wisp-trading/sdk/pkg/types/config"
 	"github.com/wisp-trading/wisp/internal/handlers/strategies/backtest/types"
 )
 
-// backtestService handles backtest operations
+// backtestService — placeholder. Live strategies are the supported product path.
 type backtestService struct{}
 
 func NewBacktestService() types.BacktestService {
@@ -13,16 +15,15 @@ func NewBacktestService() types.BacktestService {
 }
 
 func (s *backtestService) RunInteractive() error {
-	// cfg, err := interactive.InteractiveMode()
-	// if err != nil {
-	//	return err
-	//}
-	// return s.ExecuteBacktest(cfg)
+	return fmt.Errorf(`backtest is not available in this build
 
-	return nil
+Supported today:
+  wisp                      # TUI: project · keys · Start Live · Monitor
+  wisp init my-bot          # scaffold standalone strategy
+
+Use live strategies via: Strategies → Start Live`)
 }
 
-func (s *backtestService) ExecuteBacktest(cfg *config.Settings) error {
-	// TODO: Implement actual backtest execution
-	return nil
+func (s *backtestService) ExecuteBacktest(_ *config.Settings) error {
+	return s.RunInteractive()
 }
