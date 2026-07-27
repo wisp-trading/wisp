@@ -81,16 +81,8 @@ wisp
 # Navigate to: 🆕 Create New Project
 ```
 
-This creates:
-```
-my-trading-bot/
-├── config.yml              # Framework configuration
-├── exchanges.yml           # Exchange credentials & settings
-└── strategies/
-    └── momentum/
-        ├── config.yml      # Strategy metadata
-        └── main.go         # Strategy implementation
-```
+This creates a project with strategies that have `config.yml` (exchanges/assets only).  
+**API keys** live in `~/.wisp/connectors.yml` via **Settings** in the TUI — shared across strategies.
 
 ### 2. Write Your Strategy
 
@@ -195,17 +187,16 @@ parameters:
 
 ### 4. Deploy to Live Trading
 
-**Blessed path (new strategies):** build and run a **standalone binary** that calls SDK `StartStandalone` + `Wait`. This is the supported packaging model for live trading — your `main` owns the process; Wisp monitoring `POST /shutdown` and OS signals both exit cleanly.
+**Packaging:** strategies are **standalone binaries** only (`main.go` + `StartStandalone` + `Wait`). Plugin / `.so` / `run-strategy` support has been removed.
 
-Plugin / `wisp run-strategy` (`.so` load) is **legacy** and not recommended for new strategies. The TUI “Start Live” path still uses it for older projects; migrate standalone when you touch a strategy.
+**Credentials:** global under **`~/.wisp/connectors.yml`**, managed via the TUI **Settings** UI (not per-strategy). Strategy `config.yml` only lists which exchanges/assets to use — no API keys. Override path with `--wisp` or `WISP_SETTINGS`. Project-local `wisp.yml` / `exchanges.yml` still work as a migration fallback if the home file is missing.
 
 ```bash
-# Standalone (recommended): run your strategy binary from its directory
+# Run strategy binary
 go run ./strategies/momentum
 
-# Legacy TUI spawn (plugin path — demoted)
+# Or TUI: Strategies → Start Live (compiles main.go binary and spawns it)
 wisp
-# Navigate to: Strategies → momentum → Start Live
 ```
 
 Standalone processes continue after you close the CLI when launched detached (or via your process supervisor).
@@ -601,7 +592,7 @@ A: Hyperliquid perps = production. Polymarket = alpha. Bybit / Paradex / Gate = 
 A: Yes! Each strategy runs in its own isolated process.
 
 **Q: How do I handle API keys securely?**
-A: Store them in `exchanges.yml` with proper file permissions (chmod 600).
+A: Use the TUI **Settings** screen — keys are saved to `~/.wisp/connectors.yml` with mode 0600. Do not commit credentials.
 
 **Q: Can I write strategies in languages other than Go?**
 A: Wisp strategies must be written in Go to run in the framework. However, you can integrate machine learning models from any language using:

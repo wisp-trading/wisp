@@ -35,9 +35,9 @@ Out of scope (report to the owning repo/vendor):
 
 ## Hardening notes for operators
 
-- Never commit `exchanges.yml`, `wisp.yml`, or API keys
+- Never commit API keys; credentials live in `~/.wisp/connectors.yml` (mode 0600)
 - Run live strategies under least-privilege OS users and process supervisors
-- Prefer standalone strategy binaries (`StartStandalone` + `Wait`) over legacy plugins
+- Strategies are standalone binaries only (`StartStandalone` + `Wait`)
 - Keep Go toolchain and dependencies current (`make verify`, Dependabot PRs)
 
 Automated checks:

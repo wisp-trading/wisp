@@ -22,7 +22,8 @@ import (
 
 func main() {
 	configDir := flag.String("config", ".", "strategy config directory")
-	wispYml := flag.String("wisp", "wisp.yml", "path to wisp.yml / exchanges config root")
+	// Empty --wisp uses ~/.wisp/connectors.yml (or WISP_SETTINGS / project-local migration).
+	wispYml := flag.String("wisp", "", "connector settings path (default: ~/.wisp/connectors.yml)")
 	flag.Parse()
 
 	ctx := context.Background()

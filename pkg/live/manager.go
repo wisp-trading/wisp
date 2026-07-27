@@ -68,7 +68,7 @@ type InstanceManager interface {
 
 // ProcessSpawner creates and configures child processes with proper isolation
 type ProcessSpawner interface {
-	// Spawn creates a new wisp run-strategy process
+	// Spawn creates a standalone strategy process (binary in strategy dir)
 	Spawn(ctx context.Context, strategy *config.Strategy) (*exec.Cmd, error)
 
 	// AttachMonitor starts monitoring process for crashes
