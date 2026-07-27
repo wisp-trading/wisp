@@ -127,6 +127,9 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v5
+        with:
+          # examples/reference-standalone replaces sdk => ../../sdk
+          submodules: recursive
 
       - name: Set up Go
         uses: actions/setup-go@v6
@@ -135,6 +138,7 @@ jobs:
           cache-dependency-path: |
             go.sum
             examples/reference-standalone/go.sum
+            sdk/go.sum
 
       - name: Build CLI
         run: |
@@ -144,6 +148,7 @@ jobs:
 
       - name: Build reference standalone strategy
         run: |
+          test -f sdk/go.mod
           cd examples/reference-standalone
           go mod download
           go build -trimpath -o reference-standalone .

@@ -1,4 +1,4 @@
 [submodule "sdk"]
 	path = sdk
-	url = git@github.com:wisp-trading/sdk.git
+	url = https://github.com/wisp-trading/sdk.git
 	branch = main
