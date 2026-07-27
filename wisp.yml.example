@@ -1,5 +1,6 @@
-# Global connector settings for live strategies.
-# Copy to wisp.yml and enable exchanges you use.
+# Connector settings example (same shape as ~/.wisp/connectors.yml).
+# Preferred: wisp → Settings (writes ~/.wisp/connectors.yml).
+# Optional project-local copy as wisp.yml only for migration/testing.
 connectors:
   - name: hyperliquid
     enabled: false

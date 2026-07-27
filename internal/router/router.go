@@ -9,22 +9,13 @@ import (
 type Route string
 
 const (
-	RouteInit             Route = "init"
-	RouteLive             Route = "live"
-	RouteMonitor          Route = "monitor"
-	RouteBacktest         Route = "backtest"
-	RouteAnalyze          Route = "analyze"
-	RouteMenu             Route = "menu"
-	RouteStrategyList     Route = "strategy-list"
-	RouteStrategyDetail   Route = "strategy-detail"
-	RouteStrategyCompile  Route = "strategy-compile"
-	RouteStrategyBacktest Route = "strategy-backtest"
-	RouteStrategyEdit     Route = "strategy-edit"
-	RouteStrategyDelete   Route = "strategy-delete"
-	RouteSettingsList     Route = "settings-list"
-	RouteSettingsEdit     Route = "settings-edit"
-	RouteSettingsCreate   Route = "settings-create"
-	RouteSettingsDelete   Route = "settings-delete"
+	// Product TUI routes (registered in handlers/root.go)
+	RouteMonitor        Route = "monitor"
+	RouteStrategyList   Route = "strategy-list"
+	RouteSettingsList   Route = "settings-list"
+	RouteSettingsEdit   Route = "settings-edit"
+	RouteSettingsCreate Route = "settings-create"
+	RouteSettingsDelete Route = "settings-delete"
 )
 
 // ViewFactory creates a view for a given route

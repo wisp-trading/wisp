@@ -52,7 +52,7 @@ func (m mainMenuModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 	case tea.KeyMsg:
 		switch msg.String() {
-		case "ctrl+c", "q":
+		case "ctrl+c", "q", "esc":
 			return m, tea.Quit
 		case "up", "k":
 			if m.cursor > 0 {
@@ -94,7 +94,7 @@ func (m mainMenuModel) View() string {
 		}
 	}
 
-	s += "\n" + ui.MutedStyle.Render("↑↓ / 1-5  Navigate   ↵ / click  Select   q  Quit")
+	s += "\n" + ui.MutedStyle.Render("↑↓ / 1-5  Navigate   ↵ / click  Select   q/Esc  Quit")
 
 	return ui.MenuBoxStyle.Render(s)
 }

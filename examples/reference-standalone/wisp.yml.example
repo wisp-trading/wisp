@@ -1,5 +1,5 @@
-# Copy to project root as wisp.yml (or exchanges.yml) and fill credentials.
-# Reference strategy lists hyperliquid; leave disabled for compile-only smoke.
+# Optional local settings for this example (or use ~/.wisp/connectors.yml via Settings).
+# Leave disabled for compile-only smoke.
 connectors:
   - name: hyperliquid
     enabled: false
