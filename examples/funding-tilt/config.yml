@@ -1,0 +1,23 @@
+name: funding-tilt
+# Domain = connector MarketType (hyperliquid = perp).
+exchanges:
+  - hyperliquid
+assets:
+  hyperliquid:
+    - base: BTC
+      quote: USD
+parameters:
+  dry_run: true
+  # Hyperliquid pays funding hourly. Positive rate → longs pay shorts.
+  # Entry when |funding| exceeds this (as absolute decimal, e.g. 0.00005 = 0.005%).
+  funding_entry: "0.00005"
+  funding_exit: "0.00001"
+  rsi_period: 14
+  rsi_overbought: "70"
+  rsi_oversold: "30"
+  rsi_mid: "50"
+  # Order size in base (BTC). Tiny for trials.
+  size: "0.001"
+  kline_interval: "15m"
+  kline_limit: 60
+  tick_seconds: 30
