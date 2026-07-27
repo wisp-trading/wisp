@@ -3,15 +3,15 @@
 *.dll
 *.so
 *.dylib
-wisp
+/wisp
 .claude
 
 # Output directories
-bin/
+/bin/
 build/
 results/
 
-# Vendor directory (if using vendoring)
+# Vendor directory
 vendor/
 
 # Test binary output
@@ -26,46 +26,23 @@ vendor/
 *.tmp
 *.out
 
-# Coverage files
+# Coverage
 coverage.out
 
-# Dependency directories (if using dep)
-Gopkg.lock
-Gopkg.toml
-
-# Generated files by Swaggo or other tools
+# Generated
 docs/
 
 # Secrets
 .env
-.secrets
-
-# Ignore editor swap/backup files
-*~
-nul
-CLAUDE.md
-.claude/settings.local.json
-*.txt
-
-# Debug scripts
-debug/
+exchanges.yml
+wisp.yml
 
 # macOS
 .DS_Store
 
-# Credentials (global exchange config)
-exchanges.yml
+# Built strategy example binary
+examples/reference-standalone/reference-standalone
 
-# built strategy binaries
-strategies/*/*
-!strategies/*/
-!strategies/*/*.
-examples/reference-standalone/reference-standalone
-bin/
-bin/
-examples/reference-standalone/reference-standalone
-**/reference-standalone
-
-# Build outputs
-/bin/
-examples/reference-standalone/reference-standalone
+# Debug
+debug/
+*.txt

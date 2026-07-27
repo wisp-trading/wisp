@@ -1,0 +1,9 @@
+# Copy to project root as wisp.yml (or exchanges.yml) and fill credentials.
+# Reference strategy lists hyperliquid; leave disabled for compile-only smoke.
+connectors:
+  - name: hyperliquid
+    enabled: false
+    network: mainnet
+    credentials:
+      private_key: ""
+      account_address: ""
