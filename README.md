@@ -4,7 +4,7 @@
 
 **Fast, deterministic backtesting and live trading for algorithmic strategies.**
 
-[![Go Version](https://img.shields.io/badge/Go-1.24+-00ADD8?style=flat&logo=go)](https://go.dev/)
+[![Go Version](https://img.shields.io/badge/Go-1.26+-00ADD8?style=flat&logo=go)](https://go.dev/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Documentation](https://img.shields.io/badge/docs-usewisp.dev-blue)](https://usewisp.dev/docs)
 
@@ -46,6 +46,15 @@ go install github.com/wisp-trading/wisp@latest
 ### Build from Source
 
 ```bash
+git clone --recurse-submodules https://github.com/wisp-trading/wisp
+cd wisp
+# Requires Go 1.26+ (Green Tea GC enabled by default)
+```
+
+Full monorepo layout (sdk, connectors, …): see [MONOREPO.md](./MONOREPO.md).
+
+```bash
+# legacy one-liner without submodules still installs the CLI module only:
 git clone https://github.com/wisp-trading/wisp
 cd wisp
 go build -o wisp

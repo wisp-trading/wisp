@@ -1,0 +1,11 @@
+.PHONY: submodules test build
+
+submodules:
+	git submodule update --init --recursive
+
+test:
+	go test ./internal/services/live/manager/ ./sdk/pkg/lifecycle/ ./sdk/pkg/runtime/ -count=1
+
+build:
+	mkdir -p bin
+	go build -o bin/wisp .

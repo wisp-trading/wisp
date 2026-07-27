@@ -1,6 +1,8 @@
 module github.com/wisp-trading/wisp
 
-go 1.25.3
+go 1.26
+
+toolchain go1.26.5
 
 require (
 	github.com/charmbracelet/bubbletea v1.3.5
@@ -18,7 +20,7 @@ require (
 	github.com/spf13/cobra v1.10.1
 	github.com/stretchr/testify v1.11.1
 	github.com/wisp-trading/connectors v0.1.1
-	github.com/wisp-trading/sdk v0.1.0
+	github.com/wisp-trading/sdk v0.1.1-0.20260727073335-678b421c4c3d
 	go.uber.org/fx v1.24.0
 	gopkg.in/yaml.v3 v3.0.1
 )
@@ -161,9 +163,3 @@ require (
 	golang.org/x/tools v0.39.0 // indirect
 	howett.net/plist v1.0.1 // indirect
 )
-
-replace github.com/wisp-trading/sdk => ../sdk
-
-replace github.com/wisp-trading/connectors => ../connectors
-
-replace github.com/GoPolymarket/polymarket-go-sdk => ../polymarket-go-sdk
