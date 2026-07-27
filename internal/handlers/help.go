@@ -51,8 +51,11 @@ Three things this CLI is for:
 
 Tips
   • Strategy config.yml lists exchanges/assets only — never secrets.
+  • Domain (spot/perp/…) comes from the connector MarketType, not YAML.
+  • Orders: wisp.Perp().Emit(sig) (or Spot/Predict/Options) — no top-level Emit.
   • Prefer Hyperliquid perps for production; other venues are beta.
   • Strategies: ←→ pages · click row · r refresh · q back
+  • Broken config.yml shows in the list — open it for the parse error.
   • Settings form: ↑↓/Tab fields · Enter next/save · Ctrl+X/Esc cancel
   • Main menu: 1–5 jump · q quit
 `)
