@@ -6,7 +6,7 @@ toolchain go1.26.5
 
 require (
 	github.com/wisp-trading/connectors v0.1.3
-	github.com/wisp-trading/sdk v0.1.9
+	github.com/wisp-trading/sdk v0.1.10
 	go.uber.org/fx v1.24.0
 )
 

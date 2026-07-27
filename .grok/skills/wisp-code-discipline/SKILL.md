@@ -85,8 +85,9 @@ spot/perp pair shell shared via
 PairAction + PairSignalData + builder Core; domain only wraps fluent types + leverage/funding;
 `package pkg` (was packages); dead spot/perp `config/` packages removed.
 
-**Still open:** options/prediction shells (different keys); optional `pkg/testing` trim;
-spot PNL trade-tracker vs perp exchange positions (different sources, not copy-paste).
+**Still open:** options/prediction shells (different keys); optional `pkg/testing` trim.
+
+**Released:** sdk `v0.1.10` (pair shell DRY + config honesty).
 
 **Process:** no release tags unless ship-worthy change.
 
