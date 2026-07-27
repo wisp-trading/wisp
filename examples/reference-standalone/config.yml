@@ -1,0 +1,11 @@
+name: reference-standalone
+description: Minimal lifecycle demo (no live orders)
+exchanges:
+  - hyperliquid
+assets:
+  hyperliquid:
+    - base: BTC
+      quote: USD
+      instruments: [perp]
+parameters:
+  dry_run: true
