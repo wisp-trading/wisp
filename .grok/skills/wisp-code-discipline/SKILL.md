@@ -51,9 +51,10 @@ explicitly orders a redesign after rejecting the existing path.
 
 | Path | Purpose |
 |------|---------|
-| `wisp.Spot().Emit` / `Perp().Emit` / `Predict().Emit` / `Options().Emit` | **Places orders** (type-safe by market) |
-| `wisp.Emit(signal)` | Untyped convenience — prefer domain Emit |
-| `BaseStrategy.Publish` | Observability channel only (`Signals()`) — **not** trading |
+| `wisp.Spot().Emit` / `Perp().Emit` / `Predict().Emit` / `Options().Emit` | **Only** way to place orders (market-scoped) |
+| `BaseStrategy.EmitStatus` | Operator/monitor status snapshots — **not** trading |
+
+No `wisp.Emit`. No signal publish channel.
 
 ## Config boot flow (current law)
 
