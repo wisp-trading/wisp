@@ -251,15 +251,15 @@ func fetchFromSDK() ([]StrategyTemplate, error) {
 	return templates, nil
 }
 
-// getFallbackStrategies returns a hardcoded list of strategies as fallback
+// getFallbackStrategies returns local templates (no remote clone).
 func getFallbackStrategies() []StrategyTemplate {
 	return []StrategyTemplate{
 		{
-			Name:        "mean_reversion",
-			DisplayName: "Mean Reversion Strategy",
-			Description: "Bollinger Bands mean reversion with RSI confirmation",
-			Icon:        "📉",
-			SDKExample:  "mean_reversion",
+			Name:        "starter",
+			DisplayName: "Starter (standalone)",
+			Description: "main.go + StartStandalone + Wait — keys via Settings",
+			Icon:        "🚀",
+			SDKExample:  "starter",
 		},
 	}
 }

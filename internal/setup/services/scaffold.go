@@ -3,52 +3,61 @@ package services
 import (
 	"fmt"
 	"os"
-	"os/exec"
 	"path/filepath"
+	"strings"
 
 	"github.com/fatih/color"
 	"github.com/spf13/afero"
 	"github.com/wisp-trading/wisp/internal/setup/types"
 )
 
-// scaffoldService handles project creation and scaffolding
+// scaffolder creates a minimal local project: strategies/<name>/ with main.go + config.yml.
+// Credentials are never written here — use wisp TUI Settings → ~/.wisp/connectors.yml.
 type scaffolder struct {
 	fs afero.Fs
 }
 
 func NewScaffoldService() types.ScaffoldService {
-	return &scaffolder{
-		fs: afero.NewOsFs(),
-	}
+	return &scaffolder{fs: afero.NewOsFs()}
 }
 
-type ProjectData struct {
-	ProjectName     string
-	ModulePath      string
-	StrategyPackage string
-}
-
+// CreateProject scaffolds a starter strategy project under the given directory name.
 func (s *scaffolder) CreateProject(name string) error {
-	return s.CreateProjectWithStrategy(name, "mean_reversion")
+	return s.CreateProjectWithStrategy(name, "starter")
 }
 
+// CreateProjectWithStrategy creates the project. strategyExample is the strategy folder name
+// (defaults to "starter" when empty).
 func (s *scaffolder) CreateProjectWithStrategy(name, strategyExample string) error {
-	green := color.New(color.FgGreen, color.Bold)
-	fmt.Printf("🚀 Creating Wisp project: %s\n\n", green.Sprint(name))
+	name = strings.TrimSpace(name)
+	if name == "" {
+		return fmt.Errorf("project name cannot be empty")
+	}
+	if strategyExample == "" {
+		strategyExample = "starter"
+	}
+	// Sanitize strategy folder
+	strategyExample = strings.ReplaceAll(strategyExample, " ", "_")
 
-	// Check if exists
+	green := color.New(color.FgGreen, color.Bold)
+	fmt.Printf("Creating Wisp project: %s\n\n", green.Sprint(name))
+
 	if exists, _ := afero.DirExists(s.fs, name); exists {
 		return fmt.Errorf("directory '%s' already exists", name)
 	}
 
-	data := ProjectData{
-		ProjectName:     name,
-		ModulePath:      "github.com/your-username/" + name,
-		StrategyPackage: strategyExample,
+	strategyDir := filepath.Join(name, "strategies", strategyExample)
+	if err := os.MkdirAll(strategyDir, 0o755); err != nil {
+		return fmt.Errorf("create strategy dir: %w", err)
 	}
 
-	// Generate files (git clone will create the directory)
-	if err := s.generateFiles(name, strategyExample, data); err != nil {
+	if err := s.writeStrategyFiles(name, strategyExample, strategyDir); err != nil {
+		_ = os.RemoveAll(name)
+		return err
+	}
+
+	if err := s.writeProjectRoot(name, strategyExample); err != nil {
+		_ = os.RemoveAll(name)
 		return err
 	}
 
@@ -56,199 +65,202 @@ func (s *scaffolder) CreateProjectWithStrategy(name, strategyExample string) err
 	return nil
 }
 
-func (s *scaffolder) generateFiles(name, strategyExample string, data ProjectData) error {
-	// Git clone with sparse checkout directly to project directory
-	fmt.Printf("  📦 Downloading %s example from GitHub...\n", strategyExample)
+func (s *scaffolder) writeStrategyFiles(project, strategy, strategyDir string) error {
+	module := "github.com/example/" + project + "/strategies/" + strategy
 
-	cmd := exec.Command("git", "clone", "--depth", "1", "--filter=blob:none", "--sparse",
-		"https://github.com/wisp-trading/sdk.git", name)
-	if err := cmd.Run(); err != nil {
-		return fmt.Errorf("failed to clone SDK: %w", err)
-	}
+	files := map[string]string{
+		"go.mod": fmt.Sprintf(`module %s
 
-	// Set sparse checkout to get ONLY the selected example
-	examplePath := fmt.Sprintf("examples/%s", strategyExample)
-	cmd = exec.Command("git", "-C", name, "sparse-checkout", "set", examplePath)
-	if err := cmd.Run(); err != nil {
-		return fmt.Errorf("failed to checkout %s: %w", strategyExample, err)
-	}
+go 1.26
 
-	// Create strategies directory in project root
-	strategiesDir := filepath.Join(name, "strategies")
-	if err := os.MkdirAll(strategiesDir, 0755); err != nil {
-		return fmt.Errorf("failed to create strategies directory: %w", err)
-	}
-
-	// Create strategy subdirectory (strategies/{strategy_name}/)
-	strategyDestDir := filepath.Join(strategiesDir, strategyExample)
-	if err := os.MkdirAll(strategyDestDir, 0755); err != nil {
-		return fmt.Errorf("failed to create strategy subdirectory: %w", err)
-	}
-
-	// Move everything from examples/{strategy} to strategies/{strategy_name}/
-	strategySourceDir := filepath.Join(name, "examples", strategyExample)
-	files, err := os.ReadDir(strategySourceDir)
-	if err != nil {
-		return fmt.Errorf("failed to read %s directory: %w", strategyExample, err)
-	}
-
-	for _, file := range files {
-		srcPath := filepath.Join(strategySourceDir, file.Name())
-		dstPath := filepath.Join(strategyDestDir, file.Name())
-
-		if err := os.Rename(srcPath, dstPath); err != nil {
-			return fmt.Errorf("failed to move %s: %w", file.Name(), err)
-		}
-		fmt.Printf("  📝 strategies/%s/%s\n", strategyExample, file.Name())
-	}
-
-	// Remove examples directory
-	if err := os.RemoveAll(filepath.Join(name, "examples")); err != nil {
-		return fmt.Errorf("failed to remove examples directory: %w", err)
-	}
-
-	// Remove .git directory
-	if err := os.RemoveAll(filepath.Join(name, ".git")); err != nil {
-		return fmt.Errorf("failed to remove .git directory: %w", err)
-	}
-
-	// Generate root-level files (go.mod, README.md)
-	if err := s.generateRootFiles(name, strategyExample, data); err != nil {
-		return fmt.Errorf("failed to generate root files: %w", err)
-	}
-
-	// Generate configuration files
-	if err := s.generateConfigFiles(name, strategyExample); err != nil {
-		return fmt.Errorf("failed to generate config files: %w", err)
-	}
-
-	return nil
-}
-
-func (s *scaffolder) generateRootFiles(name, strategyExample string, data ProjectData) error {
-	// Generate go.mod
-	goModContent := fmt.Sprintf(`module %s
-
-go 1.23
-
-require github.com/wisp-trading/sdk v0.0.0
-`, data.ModulePath)
-
-	goModPath := filepath.Join(name, "go.mod")
-	if err := os.WriteFile(goModPath, []byte(goModContent), 0644); err != nil {
-		return fmt.Errorf("failed to write go.mod: %w", err)
-	}
-	fmt.Printf("  📝 go.mod\n")
-
-	// Generate README.md
-	readmeContent := fmt.Sprintf(`# %s
-
-A Wisp trading strategy project using the %s strategy.
-
-## Setup
-
-1. Configure your exchange credentials in `+"`exchanges.yml`"+`
-2. Install dependencies: `+"`go mod tidy`"+`
-3. Run the strategy: `+"`go run strategies/%s/strategy.go`"+`
-
-## Configuration
-
-- `+"`exchanges.yml`"+` - Global exchange and asset configuration
-- `+"`strategies/%s/config.yml`"+` - Strategy-specific parameters
-
-## Documentation
-
-For more information, visit: https://github.com/wisp-trading/sdk
-`, name, strategyExample, strategyExample, strategyExample)
-
-	readmePath := filepath.Join(name, "README.md")
-	if err := os.WriteFile(readmePath, []byte(readmeContent), 0644); err != nil {
-		return fmt.Errorf("failed to write README.md: %w", err)
-	}
-	fmt.Printf("  📝 README.md\n")
-
-	return nil
-}
-
-func (s *scaffolder) generateConfigFiles(name, strategyExample string) error {
-	// Note: config.yml comes from the SDK example and contains only metadata
-	// We do NOT generate it here - it's downloaded with the strategy
-
-	// Generate exchanges.yml with assets configuration
-	exchangesYAML := `# Global Exchange Configuration
-# Configure which exchanges and assets to trade
-
+require (
+	github.com/wisp-trading/connectors v0.1.3
+	github.com/wisp-trading/sdk v0.1.4
+	go.uber.org/fx v1.24.0
+)
+`, module),
+		"config.yml": fmt.Sprintf(`name: %s
+description: Starter strategy (standalone binary)
 exchanges:
-  - name: binance
-    enabled: true
-    credentials:
-      api_key: ""
-      api_secret: ""
-    assets:
-      - BTC/USDT
-      - ETH/USDT
+  - hyperliquid
+assets:
+  hyperliquid:
+    - base: BTC
+      quote: USD
+      instruments: [perp]
+parameters:
+  dry_run: true
+`, strategy),
+		"main.go": `package main
 
-  - name: bybit
-    enabled: true
-    credentials:
-      api_key: ""
-      api_secret: ""
-    assets:
-      - BTC/USDT
+import (
+	"context"
+	"flag"
+	"log"
+	"os"
 
-  - name: paradex
-    enabled: false
-    credentials:
-      account_address: ""
-      eth_private_key: ""
-    assets:
-      - BTC/USD
-`
+	"github.com/wisp-trading/connectors/pkg/connectors"
+	"github.com/wisp-trading/sdk/pkg/types/runtime"
+	"github.com/wisp-trading/sdk/pkg/types/strategy"
+	"github.com/wisp-trading/sdk/wisp"
+	"go.uber.org/fx"
+)
 
-	exchangesPath := filepath.Join(name, "exchanges.yml")
-	if err := os.WriteFile(exchangesPath, []byte(exchangesYAML), 0644); err != nil {
-		return fmt.Errorf("failed to write exchanges.yml: %w", err)
+func main() {
+	configDir := flag.String("config", ".", "strategy config directory")
+	// Empty --wisp → ~/.wisp/connectors.yml (set keys via: wisp → Settings)
+	wispPath := flag.String("wisp", "", "connector settings path (default: ~/.wisp/connectors.yml)")
+	flag.Parse()
+
+	ctx := context.Background()
+	var (
+		rt    runtime.Runtime
+		strat strategy.Strategy
+	)
+
+	app := fx.New(
+		connectors.Module,
+		wisp.Module,
+		fx.Provide(NewStrategy),
+		fx.Populate(&rt, &strat),
+		fx.NopLogger,
+	)
+
+	if err := app.Start(ctx); err != nil {
+		log.Fatalf("fx start: %v", err)
 	}
-	fmt.Printf("  📝 exchanges.yml\n")
+	defer func() { _ = app.Stop(ctx) }()
 
-	// Generate .gitignore if it doesn't exist
-	gitignorePath := filepath.Join(name, ".gitignore")
-	if _, err := os.Stat(gitignorePath); os.IsNotExist(err) {
-		gitignoreContent := `# Credentials
-exchanges.yml
+	if err := rt.StartStandalone(strat, *configDir, *wispPath); err != nil {
+		log.Fatalf("StartStandalone: %v", err)
+	}
 
-# Build artifacts
-*.so
-bin/
+	log.Println("running — Ctrl+C or Monitor → Stop")
+	if err := rt.Wait(); err != nil {
+		log.Printf("Wait: %v", err)
+		os.Exit(1)
+	}
+}
+`,
+		"strategy.go": fmt.Sprintf(`package main
 
-# IDE
-.vscode/
-.idea/
-*.swp
-*.swo
+import (
+	"context"
+	"time"
 
-# OS
-.DS_Store
-`
-		if err := os.WriteFile(gitignorePath, []byte(gitignoreContent), 0644); err != nil {
-			return fmt.Errorf("failed to write .gitignore: %w", err)
+	"github.com/wisp-trading/sdk/pkg/types/strategy"
+	"github.com/wisp-trading/sdk/pkg/types/wisp"
+)
+
+// Strategy is a minimal self-directed strategy (no orders).
+type Strategy struct {
+	strategy.BaseStrategy
+	k wisp.Wisp
+}
+
+func NewStrategy(k wisp.Wisp) strategy.Strategy {
+	s := &Strategy{k: k}
+	s.BaseStrategy = *strategy.NewBaseStrategy(strategy.BaseStrategyConfig{
+		Name: "%s",
+	})
+	return s
+}
+
+func (s *Strategy) Start(ctx context.Context) error {
+	return s.StartWithRunner(ctx, s.run)
+}
+
+func (s *Strategy) run(ctx context.Context) {
+	s.k.Log().Info("strategy running")
+	t := time.NewTicker(30 * time.Second)
+	defer t.Stop()
+	for {
+		select {
+		case <-ctx.Done():
+			s.k.Log().Info("strategy stopped")
+			return
+		case <-t.C:
+			s.k.Log().Info("heartbeat")
 		}
-		fmt.Printf("  📝 .gitignore\n")
+	}
+}
+`, strategy),
 	}
 
+	for name, body := range files {
+		path := filepath.Join(strategyDir, name)
+		if err := os.WriteFile(path, []byte(body), 0o644); err != nil {
+			return fmt.Errorf("write %s: %w", name, err)
+		}
+		fmt.Printf("  strategies/%s/%s\n", strategy, name)
+	}
+	return nil
+}
+
+func (s *scaffolder) writeProjectRoot(name, strategyExample string) error {
+	readme := fmt.Sprintf(`# %s
+
+Wisp strategy project.
+
+## Quick start
+
+1. **Keys** (once, global): run `+"`wisp`"+` → **Settings** → add Hyperliquid (or other) credentials  
+   Saved to `+"`~/.wisp/connectors.yml`"+` — shared by all strategies.
+2. **Deps:** `+"`cd strategies/%s && go mod tidy`"+`
+3. **Run:** from that directory: `+"`go run .`"+`  
+   Or from project root: `+"`wisp`"+` → **Strategies** → Start Live / **Monitor** → Stop
+
+## Layout
+
+`+"```"+`
+%s/
+└── strategies/
+    └── %s/
+        ├── main.go      # StartStandalone + Wait
+        ├── strategy.go
+        ├── config.yml   # exchanges/assets only (no secrets)
+        └── go.mod
+`+"```"+`
+
+Do not put API keys in this repo.
+`, name, strategyExample, name, strategyExample)
+
+	if err := os.WriteFile(filepath.Join(name, "README.md"), []byte(readme), 0o644); err != nil {
+		return err
+	}
+	fmt.Printf("  README.md\n")
+
+	gitignore := `# Never commit secrets
+.env
+.env.*
+
+# Strategy build artifacts
+strategies/*/*
+!strategies/*/*.go
+!strategies/*/*.yml
+!strategies/*/go.mod
+!strategies/*/go.sum
+strategies/*/*~
+*.so
+*.exe
+
+.DS_Store
+.idea/
+.vscode/
+`
+	if err := os.WriteFile(filepath.Join(name, ".gitignore"), []byte(gitignore), 0o644); err != nil {
+		return err
+	}
+	fmt.Printf("  .gitignore\n")
 	return nil
 }
 
 func (s *scaffolder) printSuccess(name, strategyExample string) {
 	blue := color.New(color.FgBlue)
-
-	fmt.Printf("\n✅ Project created successfully!\n\n")
-	fmt.Printf("Next steps:\n")
-	fmt.Printf("  %s\n", blue.Sprint("cd "+name))
-	fmt.Printf("  %s\n", blue.Sprint("go mod tidy"))
-	fmt.Printf("  %s\n", blue.Sprint(fmt.Sprintf("go run strategies/%s/strategy.go", strategyExample)))
-	fmt.Printf("\n")
-	fmt.Printf("📝 Important:\n")
-	fmt.Printf("  • Edit exchanges.yml to add your API credentials\n")
-	fmt.Printf("  • Configure strategy parameters in strategies/%s/config.yml\n", strategyExample)
+	fmt.Printf("\n✅ Project created\n\n")
+	fmt.Printf("Next:\n")
+	fmt.Printf("  1. %s   # Settings → add exchange keys → ~/.wisp/connectors.yml\n", blue.Sprint("wisp"))
+	fmt.Printf("  2. %s\n", blue.Sprint("cd "+filepath.Join(name, "strategies", strategyExample)+" && go mod tidy"))
+	fmt.Printf("  3. %s   # or: wisp → Strategies → Start Live\n", blue.Sprint("go run ."))
+	fmt.Printf("  4. %s   # Monitor → select → Stop\n", blue.Sprint("wisp"))
 }

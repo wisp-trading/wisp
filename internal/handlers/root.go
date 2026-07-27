@@ -16,10 +16,10 @@ type RootHandler interface {
 	Handle(cmd *cobra.Command, args []string) error
 }
 
-// RootHandler handles the root command and main menu
 type rootHandler struct {
 	strategyBrowser      strategies.StrategyBrowser
 	initHandler          setup.InitHandler
+	scaffold             setup.ScaffoldService
 	backtestHandler      backtesting.BacktestHandler
 	analyzeHandler       backtesting.AnalyzeHandler
 	monitorViewFactory   monitor.MonitorViewFactory
@@ -33,6 +33,7 @@ type rootHandler struct {
 func NewRootHandler(
 	strategyBrowser strategies.StrategyBrowser,
 	initHandler setup.InitHandler,
+	scaffold setup.ScaffoldService,
 	backtestHandler backtesting.BacktestHandler,
 	analyzeHandler backtesting.AnalyzeHandler,
 	monitorViewFactory monitor.MonitorViewFactory,
@@ -42,7 +43,6 @@ func NewRootHandler(
 	deleteConfirmFactory settings.DeleteConfirmViewFactory,
 	r router.Router,
 ) RootHandler {
-	// Register ALL routes with the router at initialization
 	r.RegisterRoute(router.RouteMonitor, func() tea.Model {
 		return monitorViewFactory()
 	})
@@ -70,6 +70,7 @@ func NewRootHandler(
 	return &rootHandler{
 		strategyBrowser:      strategyBrowser,
 		initHandler:          initHandler,
+		scaffold:             scaffold,
 		backtestHandler:      backtestHandler,
 		analyzeHandler:       analyzeHandler,
 		monitorViewFactory:   monitorViewFactory,
@@ -82,33 +83,33 @@ func NewRootHandler(
 }
 
 func (h *rootHandler) Handle(cmd *cobra.Command, args []string) error {
-
 	cliMode, _ := cmd.Flags().GetBool("cli")
-
 	if cliMode || len(args) > 0 {
 		return cmd.Help()
 	}
-
-	return h.runMainMenu(cmd)
+	return h.runMainMenu()
 }
 
-func (h *rootHandler) runMainMenu(_ *cobra.Command) error {
+func (h *rootHandler) runMainMenu() error {
 	m := mainMenuModel{
 		choices: []string{
 			"Strategies",
 			"Monitor",
 			"Settings",
-			"Help",
 			"Create New Project",
+			"Help",
 		},
-		router: h.router,
+		router:   h.router,
+		scaffold: h.scaffold,
 	}
 
-	// Set main menu as the initial view in router
 	h.router.SetInitialView(m)
-
-	// Run the router ONCE - all navigation happens within this single program
-	p := tea.NewProgram(h.router, tea.WithAltScreen())
+	// Mouse cell motion: click list rows / better form focus where the terminal supports it.
+	p := tea.NewProgram(
+		h.router,
+		tea.WithAltScreen(),
+		tea.WithMouseCellMotion(),
+	)
 	_, err := p.Run()
 	return err
 }

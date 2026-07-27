@@ -222,7 +222,9 @@ func (m *ConnectorFormModel) buildForm() *huh.Form {
 	return huh.NewForm(groups...).
 		WithTheme(huh.ThemeCharm()).
 		WithShowHelp(true).
-		WithShowErrors(true)
+		WithShowErrors(true).
+		// Tab / shift-tab between fields; Enter advances; Esc aborts.
+		WithKeyMap(huh.NewDefaultKeyMap())
 }
 
 // minInt returns the minimum of two ints

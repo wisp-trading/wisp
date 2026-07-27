@@ -48,28 +48,32 @@ func NewSettingsListView(
 }
 
 func (m *ConnectorListModel) Init() tea.Cmd {
-	// Load configured connectors
+	m.err = nil
 	connectorList, err := m.config.GetConnectors()
 	if err != nil {
+		// Still show available exchanges so user can add the first key.
 		m.err = err
-		return nil
+		m.configured = []config.Connector{}
+	} else {
+		m.configured = connectorList
 	}
-	m.configured = connectorList
 
-	// Get available connectors from SDK
-	allAvailable := types.AllConnectors
-
-	// Filter out already configured ones
 	configuredMap := make(map[string]bool)
 	for _, c := range m.configured {
 		configuredMap[c.Name] = true
 	}
 
 	m.available = []string{}
-	for _, name := range allAvailable {
+	for _, name := range types.AllConnectors {
 		if !configuredMap[string(name)] {
 			m.available = append(m.available, string(name))
 		}
+	}
+
+	// First run: jump cursor to "add" section when nothing configured.
+	if len(m.configured) == 0 && len(m.available) > 0 {
+		m.cursor = 0
+		m.inAvailableSection = true
 	}
 
 	return nil
@@ -138,35 +142,34 @@ func (m *ConnectorListModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 func (m *ConnectorListModel) View() string {
 	var content strings.Builder
 
-	// Title
-	title := ui.TitleStyle.Render("⚙️  Connector Configuration")
+	title := ui.TitleStyle.Render("⚙️  Exchange keys")
 	content.WriteString(title)
+	content.WriteString("\n")
+	content.WriteString(ui.MutedStyle.Render("Stored in ~/.wisp/connectors.yml — shared by all strategies"))
 	content.WriteString("\n\n")
 
-	// Error message if any
 	if m.err != nil {
-		errorBox := ui.ErrorBoxStyle.
-			Width(68).
-			Render("❌ " + m.err.Error())
+		errorBox := ui.ErrorBoxStyle.Width(68).Render("❌ " + m.err.Error())
 		content.WriteString(errorBox)
 		content.WriteString("\n\n")
 	}
 
-	// Success message if any
 	if m.successMsg != "" {
-		successMsg := ui.StatusReadyStyle.Render("✓ " + m.successMsg)
-		content.WriteString(successMsg)
+		content.WriteString(ui.StatusReadyStyle.Render("✓ " + m.successMsg))
 		content.WriteString("\n\n")
 	}
 
-	// Section 1: Configured Connectors
-	sectionHeader := ui.SectionHeaderStyle.Render("📋 CONFIGURED CONNECTORS")
+	if len(m.configured) == 0 && m.err == nil {
+		content.WriteString(ui.MutedStyle.Render("No keys yet. Select an exchange below and press Enter."))
+		content.WriteString("\n\n")
+	}
+
+	sectionHeader := ui.SectionHeaderStyle.Render("📋 CONFIGURED")
 	content.WriteString(sectionHeader)
 	content.WriteString("\n\n")
 
 	if len(m.configured) == 0 {
-		emptyMsg := ui.MutedStyle.Render("   No connectors configured yet")
-		content.WriteString(emptyMsg)
+		content.WriteString(ui.MutedStyle.Render("   (none)"))
 		content.WriteString("\n")
 	} else {
 		for i, conn := range m.configured {

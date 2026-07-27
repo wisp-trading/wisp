@@ -15,16 +15,19 @@ type StrategyListView interface {
 }
 
 type strategyListView struct {
-	strategies      []config.Strategy
-	cursor          int
-	pageSize        int
-	pageNum         int
+	strategies []config.Strategy
+	cursor     int
+	pageSize   int
+	pageNum    int // 1-based
+	width      int
+	height     int
+	// listTop is the content line offset of the first strategy row (for mouse hit testing)
+	listTop         int
 	compileService  strategyTypes.CompileService
 	strategyService config.StrategyConfig
 	detailFactory   StrategyDetailViewFactory
 }
 
-// newStrategyListView is the private constructor called by the factory
 func newStrategyListView(
 	compileService strategyTypes.CompileService,
 	strategyService config.StrategyConfig,
@@ -34,12 +37,12 @@ func newStrategyListView(
 		compileService:  compileService,
 		strategyService: strategyService,
 		detailFactory:   detailFactory,
+		pageSize:        10,
+		pageNum:         1,
+		width:           80,
+		height:          24,
 	}
-
 	view.strategies, _ = strategyService.FindStrategies()
-	view.pageSize = 5
-	view.pageNum = 1
-
 	return view
 }
 
@@ -47,29 +50,143 @@ func (m *strategyListView) Init() tea.Cmd {
 	return nil
 }
 
+func (m *strategyListView) totalPages() int {
+	if len(m.strategies) == 0 || m.pageSize <= 0 {
+		return 1
+	}
+	n := (len(m.strategies) + m.pageSize - 1) / m.pageSize
+	if n < 1 {
+		return 1
+	}
+	return n
+}
+
+func (m *strategyListView) pageStart() int {
+	return (m.pageNum - 1) * m.pageSize
+}
+
+func (m *strategyListView) pageEnd() int {
+	end := m.pageStart() + m.pageSize
+	if end > len(m.strategies) {
+		end = len(m.strategies)
+	}
+	return end
+}
+
+func (m *strategyListView) syncPageFromCursor() {
+	if m.pageSize <= 0 || len(m.strategies) == 0 {
+		m.pageNum = 1
+		return
+	}
+	m.pageNum = m.cursor/m.pageSize + 1
+	if m.pageNum > m.totalPages() {
+		m.pageNum = m.totalPages()
+	}
+	if m.pageNum < 1 {
+		m.pageNum = 1
+	}
+}
+
+func (m *strategyListView) clampCursorToPage() {
+	start, end := m.pageStart(), m.pageEnd()
+	if start >= end {
+		m.cursor = 0
+		return
+	}
+	if m.cursor < start {
+		m.cursor = start
+	}
+	if m.cursor >= end {
+		m.cursor = end - 1
+	}
+}
+
+func (m *strategyListView) recomputePageSize() {
+	// header ~4 lines, footer ~3, box padding
+	avail := m.height - 10
+	if avail < 5 {
+		avail = 5
+	}
+	if avail > 20 {
+		avail = 20
+	}
+	m.pageSize = avail
+	m.syncPageFromCursor()
+	m.clampCursorToPage()
+}
+
 func (m *strategyListView) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
+	case tea.WindowSizeMsg:
+		m.width = msg.Width
+		m.height = msg.Height
+		m.recomputePageSize()
+		return m, nil
+
+	case tea.MouseMsg:
+		if msg.Action != tea.MouseActionPress || msg.Button != tea.MouseButtonLeft {
+			return m, nil
+		}
+		// Click on a strategy row (listTop is 1-based content line of first item)
+		row := msg.Y - m.listTop
+		if row < 0 || row >= m.pageEnd()-m.pageStart() {
+			return m, nil
+		}
+		m.cursor = m.pageStart() + row
+		if m.cursor >= 0 && m.cursor < len(m.strategies) {
+			detailView := m.detailFactory(&m.strategies[m.cursor])
+			return m, bubblon.Open(detailView)
+		}
+		return m, nil
+
 	case tea.KeyMsg:
 		switch msg.String() {
 		case "ctrl+c":
 			return m, tea.Quit
-		case "q":
+		case "q", "esc":
 			return m, bubblon.Cmd(bubblon.Close())
 		case "up", "k":
 			if m.cursor > 0 {
 				m.cursor--
+				m.syncPageFromCursor()
 			}
 		case "down", "j":
 			if m.cursor < len(m.strategies)-1 {
 				m.cursor++
+				m.syncPageFromCursor()
 			}
-		case "enter":
-			// Create detail view with selected strategy using factory
+		case "left", "h", "pgup", "ctrl+u":
+			if m.pageNum > 1 {
+				m.pageNum--
+				m.clampCursorToPage()
+			}
+		case "right", "l", "pgdown", "ctrl+d":
+			if m.pageNum < m.totalPages() {
+				m.pageNum++
+				m.clampCursorToPage()
+			}
+		case "home", "g":
+			m.cursor = 0
+			m.pageNum = 1
+		case "end", "G":
+			if len(m.strategies) > 0 {
+				m.cursor = len(m.strategies) - 1
+				m.syncPageFromCursor()
+			}
+		case "enter", " ":
+			if len(m.strategies) == 0 {
+				return m, nil
+			}
 			selectedStrat := &m.strategies[m.cursor]
 			detailView := m.detailFactory(selectedStrat)
-
-			// Use Bubblon to push the new view onto the stack
 			return m, bubblon.Open(detailView)
+		case "r":
+			m.strategies, _ = m.strategyService.FindStrategies()
+			if m.cursor >= len(m.strategies) && len(m.strategies) > 0 {
+				m.cursor = len(m.strategies) - 1
+			}
+			m.syncPageFromCursor()
+			m.clampCursorToPage()
 		}
 	}
 	return m, nil
@@ -77,26 +194,42 @@ func (m *strategyListView) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 func (m *strategyListView) View() string {
 	if len(m.strategies) == 0 {
-		return ui.TitleStyle.Render("STRATEGIES") + "\n\n" + ui.SubtitleStyle.Render("No strategies found. Create a new one to get started.")
+		return ui.BoxStyle.Render(
+			ui.TitleStyle.Render("STRATEGIES") + "\n\n" +
+				ui.SubtitleStyle.Render("No strategies in ./strategies.") + "\n\n" +
+				ui.MutedStyle.Render("Create New Project from the menu, or:") + "\n" +
+				ui.MutedStyle.Render("  wisp init my-bot") + "\n\n" +
+				ui.MutedStyle.Render("Then: Settings → keys · here → Start Live · Monitor → Stop") + "\n\n" +
+				ui.MutedStyle.Render("q Back"),
+		)
 	}
 
 	var content string
 	content += ui.TitleStyle.Render("STRATEGIES") + "\n"
-	content += ui.SubtitleStyle.Render("Use arrow keys to navigate, Enter to select, q to quit") + "\n\n"
+	content += ui.MutedStyle.Render(
+		fmt.Sprintf("%d strategies  ·  ↑↓ move  ←→ page  ↵ open  click row  r refresh  q back", len(m.strategies)),
+	) + "\n\n"
 
-	// Display current page
-	for i, strat := range m.strategies {
+	// listTop: approximate Y of first item after box border + title + subtitle + blank
+	// Used for mouse; absolute coords depend on terminal — we store relative content line.
+	m.listTop = 4 // title, subtitle, blank → items start around line 4 inside box
+
+	start, end := m.pageStart(), m.pageEnd()
+	for i := start; i < end; i++ {
+		strat := m.strategies[i]
 		exchanges := fmt.Sprintf("[%v]", strat.Exchanges)
+		line := fmt.Sprintf("%s %s", strat.Name, exchanges)
 		if i == m.cursor {
-			content += ui.StrategyNameSelectedStyle.Render("▶ "+strat.Name+" "+exchanges) + "\n"
+			content += ui.StrategyNameSelectedStyle.Render("▶ "+line) + "\n"
 		} else {
-			content += ui.StrategyNameStyle.Render("  "+strat.Name+" "+exchanges) + "\n"
+			content += ui.StrategyNameStyle.Render("  "+line) + "\n"
 		}
 	}
 
-	// Show pagination info
-	totalPages := (len(m.strategies) + m.pageSize - 1) / m.pageSize
-	content += "\n" + ui.SubtitleStyle.Render(fmt.Sprintf("Page %d/%d", m.pageNum, totalPages))
+	content += "\n" + ui.SubtitleStyle.Render(
+		fmt.Sprintf("Page %d/%d  (%d–%d of %d)",
+			m.pageNum, m.totalPages(), start+1, end, len(m.strategies)),
+	)
 
 	return ui.BoxStyle.Render(content)
 }
