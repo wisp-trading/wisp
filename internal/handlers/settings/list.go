@@ -83,8 +83,8 @@ func (m *ConnectorListModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
 		switch msg.String() {
-		case "ctrl+c", "q":
-			// Navigate back to main menu
+		case "ctrl+c", "q", "esc", "ctrl+x", "backspace":
+			// Always allow leaving Settings → main menu
 			return m, m.router.Back()
 		case "up", "k":
 			if m.cursor > 0 {
@@ -281,6 +281,6 @@ func (m *ConnectorListModel) getHelpText() string {
 		ui.KeyHintStyle.Render("Enter"),
 		ui.KeyHintStyle.Render("d"),
 		ui.KeyHintStyle.Render("Space"),
-		ui.KeyHintStyle.Render("q"),
+		ui.KeyHintStyle.Render("q/Esc"),
 	)
 }
