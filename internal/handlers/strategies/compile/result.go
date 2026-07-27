@@ -16,9 +16,9 @@ type resultModel struct {
 }
 
 // NewResultModel creates a result model that shows compilation result
-func NewResultModel(strat *config.Strategy, err error) tea.Model {
+func NewResultModel(strategy *config.Strategy, err error) tea.Model {
 	return &resultModel{
-		strategy: strat,
+		strategy: strategy,
 		err:      err,
 	}
 }

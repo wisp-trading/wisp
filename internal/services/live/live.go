@@ -39,18 +39,18 @@ func NewLiveService(
 }
 
 // ExecuteStrategy runs the selected strategy with all its configured exchanges
-func (s *liveService) ExecuteStrategy(ctx context.Context, strat *config.Strategy) error {
+func (s *liveService) ExecuteStrategy(ctx context.Context, strategy *config.Strategy) error {
 	// 1. Pre-validate that we have connectors for this strategy's exchanges
-	connectorConfigs, err := s.connectorService.GetConnectorConfigsForStrategy(strat.Exchanges)
+	connectorConfigs, err := s.connectorService.GetConnectorConfigsForStrategy(strategy.Exchanges)
 	if err != nil {
 		return fmt.Errorf("cannot start strategy '%s': %w\n\nPlease check:\n- exchanges.yml has entries for: %v\n- Required exchanges are enabled\n- Exchange connectors are available in the SDK",
-			strat.Name, err, strat.Exchanges)
+			strategy.Name, err, strategy.Exchanges)
 	}
 
-	s.logger.Info("Validated connector configs", "strategy", strat.Name, "connectors", len(connectorConfigs))
+	s.logger.Info("Validated connector configs", "strategy", strategy.Name, "connectors", len(connectorConfigs))
 
 	// 2. Compile strategy (standalone binary preferred when main.go is present)
-	if err := s.compile.CompileStrategy(strat.Path); err != nil {
+	if err := s.compile.CompileStrategy(strategy.Path); err != nil {
 		return fmt.Errorf("failed to compile strategy: %w", err)
 	}
 
@@ -60,6 +60,6 @@ func (s *liveService) ExecuteStrategy(ctx context.Context, strat *config.Strateg
 		return fmt.Errorf("failed to get current directory: %w", err)
 	}
 
-	_, err = s.manager.Start(ctx, strat, frameworkRoot)
+	_, err = s.manager.Start(ctx, strategy, frameworkRoot)
 	return err
 }

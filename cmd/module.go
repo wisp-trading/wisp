@@ -10,7 +10,7 @@ var Module = fx.Module("commands",
 	fx.Provide(
 		NewRootCommand,
 		NewInitCommand,
-		//NewLiveCommand,
+		// NewLiveCommand,
 		NewBacktestCommand,
 		NewAnalyzeCommand,
 		NewVersionCommand,
@@ -37,7 +37,7 @@ type registerCommandsParams struct {
 // registerCommands wires up the command tree
 func registerCommands(p registerCommandsParams) {
 	p.Root.Cmd.AddCommand(p.Cmds.Init)
-	//p.Root.Cmd.AddCommand(p.Cmds.Live)
+	// p.Root.Cmd.AddCommand(p.Cmds.Live)
 	p.Root.Cmd.AddCommand(p.Cmds.Backtest)
 	p.Root.Cmd.AddCommand(p.Cmds.Analyze)
 	p.Root.Cmd.AddCommand(p.Cmds.Version)

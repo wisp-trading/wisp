@@ -1,0 +1,44 @@
+name: Feature request
+description: Propose an improvement or new capability
+title: "feat: "
+labels: ["enhancement"]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem
+      description: What gap are you trying to close?
+      placeholder: "Hard to run standalone strategies under a process supervisor…"
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposal
+      description: How should Wisp behave instead?
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+      description: Other approaches, workarounds, or prior art.
+    validations:
+      required: false
+
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      multiple: true
+      options:
+        - CLI / TUI
+        - Live runtime / lifecycle
+        - SDK
+        - Connectors (separate repo)
+        - Docs / examples
+        - CI / packaging
+    validations:
+      required: true

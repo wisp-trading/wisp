@@ -13,11 +13,11 @@ func NewBacktestService() types.BacktestService {
 }
 
 func (s *backtestService) RunInteractive() error {
-	//cfg, err := interactive.InteractiveMode()
-	//if err != nil {
+	// cfg, err := interactive.InteractiveMode()
+	// if err != nil {
 	//	return err
 	//}
-	//return s.ExecuteBacktest(cfg)
+	// return s.ExecuteBacktest(cfg)
 
 	return nil
 }

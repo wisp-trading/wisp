@@ -1,0 +1,155 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  # Monorepo go.work must not pull the full submodule graph into CI.
+  GOWORK: "off"
+  GOPROXY: https://proxy.golang.org,direct
+  GOSUMDB: sum.golang.org
+
+jobs:
+  # ---------------------------------------------------------------------------
+  # Module integrity
+  # ---------------------------------------------------------------------------
+  mod:
+    name: Modules
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Set up Go
+        uses: actions/setup-go@v6
+        with:
+          go-version-file: go.mod
+          cache-dependency-path: go.sum
+
+      - name: Verify checksums
+        run: go mod verify
+
+      - name: Check go.mod / go.sum tidy
+        run: |
+          go mod tidy
+          if ! git diff --exit-code go.mod go.sum; then
+            echo "::error::go.mod or go.sum is out of date — run 'go mod tidy' and commit"
+            exit 1
+          fi
+
+  # ---------------------------------------------------------------------------
+  # Static analysis
+  # ---------------------------------------------------------------------------
+  lint:
+    name: Lint
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Set up Go
+        uses: actions/setup-go@v6
+        with:
+          go-version-file: go.mod
+          cache: false
+
+      - name: golangci-lint
+        uses: golangci/golangci-lint-action@v9
+        with:
+          version: v2.12.2
+          args: --timeout=5m ./cmd/... ./internal/... ./pkg/...
+
+  # ---------------------------------------------------------------------------
+  # Unit tests + coverage
+  # ---------------------------------------------------------------------------
+  test:
+    name: Test
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Set up Go
+        uses: actions/setup-go@v6
+        with:
+          go-version-file: go.mod
+          cache-dependency-path: go.sum
+
+      - name: Download modules
+        run: go mod download
+
+      - name: Vet
+        run: go vet ./cmd/... ./internal/... ./pkg/...
+
+      - name: Test
+        run: >
+          go test -race -count=1 -shuffle=on
+          -covermode=atomic -coverprofile=coverage.out
+          ./cmd/... ./internal/... ./pkg/...
+
+      - name: Coverage summary
+        if: always()
+        run: |
+          if [ -f coverage.out ]; then
+            go tool cover -func=coverage.out | tail -1
+          fi
+
+      - name: Upload coverage
+        if: always()
+        uses: codecov/codecov-action@v5
+        with:
+          files: ./coverage.out
+          flags: unittests
+          name: wisp-cli
+          token: ${{ secrets.CODECOV_TOKEN }}
+          fail_ci_if_error: false
+
+  # ---------------------------------------------------------------------------
+  # Green-path packaging smoke (CLI + reference standalone)
+  # ---------------------------------------------------------------------------
+  smoke:
+    name: Smoke
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+        with:
+          # examples/reference-standalone replaces sdk => ../../sdk
+          submodules: recursive
+
+      - name: Set up Go
+        uses: actions/setup-go@v6
+        with:
+          go-version-file: go.mod
+          cache-dependency-path: |
+            go.sum
+            examples/reference-standalone/go.sum
+            sdk/go.sum
+
+      - name: Build CLI
+        run: |
+          mkdir -p bin
+          go build -trimpath -ldflags="-s -w" -o bin/wisp .
+          ./bin/wisp version
+
+      - name: Build reference standalone strategy
+        run: |
+          test -f sdk/go.mod
+          cd examples/reference-standalone
+          go mod download
+          go build -trimpath -o reference-standalone .
+          test -x ./reference-standalone

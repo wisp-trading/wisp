@@ -1,0 +1,100 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Tag to build (e.g. v0.2.0). Leave empty to use the push tag."
+        required: false
+        default: ""
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+env:
+  GOWORK: "off"
+  GOPROXY: https://proxy.golang.org,direct
+  GOSUMDB: sum.golang.org
+
+jobs:
+  release:
+    name: Build & publish
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+
+      - name: Set up Go
+        uses: actions/setup-go@v6
+        with:
+          go-version-file: go.mod
+          cache-dependency-path: go.sum
+
+      - name: Resolve version
+        id: ver
+        run: |
+          if [ -n "${{ github.event.inputs.tag }}" ]; then
+            VERSION="${{ github.event.inputs.tag }}"
+          elif [[ "${{ github.ref }}" == refs/tags/* ]]; then
+            VERSION="${GITHUB_REF_NAME}"
+          else
+            echo "::error::No tag provided. Push a v* tag or pass workflow_dispatch input."
+            exit 1
+          fi
+          if [[ ! "$VERSION" =~ ^v[0-9]+\.[0-9]+\.[0-9]+(-[a-zA-Z0-9.]+)?$ ]]; then
+            echo "::error::Version must look like vX.Y.Z (got: $VERSION)"
+            exit 1
+          fi
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "Building $VERSION"
+
+      - name: Test
+        run: go test -count=1 ./cmd/... ./internal/... ./pkg/...
+
+      - name: Cross-compile
+        env:
+          VERSION: ${{ steps.ver.outputs.version }}
+        run: |
+          set -euo pipefail
+          mkdir -p dist
+          LDFLAGS="-s -w -X github.com/wisp-trading/wisp/cmd.Version=${VERSION}"
+          for pair in \
+            "linux amd64" \
+            "linux arm64" \
+            "darwin amd64" \
+            "darwin arm64" \
+            "windows amd64"; do
+            # shellcheck disable=SC2086
+            set -- $pair
+            GOOS=$1 GOARCH=$2
+            EXT=""
+            if [ "$GOOS" = "windows" ]; then EXT=".exe"; fi
+            OUT="dist/wisp_${VERSION}_${GOOS}_${GOARCH}${EXT}"
+            echo "→ $OUT"
+            GOOS="$GOOS" GOARCH="$GOARCH" CGO_ENABLED=0 \
+              go build -trimpath -ldflags="$LDFLAGS" -o "$OUT" .
+          done
+          cd dist
+          sha256sum * > checksums.txt
+          cat checksums.txt
+
+      - name: Publish GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.ver.outputs.version }}
+          name: ${{ steps.ver.outputs.version }}
+          generate_release_notes: true
+          files: dist/*
+          fail_on_unmatched_files: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

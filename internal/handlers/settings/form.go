@@ -331,7 +331,7 @@ func (m *ConnectorFormModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		// Save the connector
 		if err := m.saveConnector(); err != nil {
 			// Show error but allow user to go back or retry
-			m.err = fmt.Errorf("%v\n\nPress Esc to cancel or fix the values and submit again", err)
+			m.err = fmt.Errorf("%w\n\nPress Esc to cancel or fix the values and submit again", err)
 			// Reset form state so user can edit
 			m.form.State = huh.StateNormal
 			return m, nil
