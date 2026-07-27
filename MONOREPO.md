@@ -61,3 +61,9 @@ cd ..
 git add sdk
 git commit -m "chore: bump sdk submodule"
 ```
+
+## Reference strategy
+
+See [`examples/reference-standalone`](./examples/reference-standalone) for the blessed
+`StartStandalone` + `Wait` process host. Copy that pattern for private strategies.
+

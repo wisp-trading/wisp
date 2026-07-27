@@ -53,6 +53,8 @@ cd wisp
 
 Monorepo layout (CLI + sdk submodule): see [MONOREPO.md](./MONOREPO.md). Connectors are a separate module.
 
+Blessed strategy packaging: [`examples/reference-standalone`](./examples/reference-standalone) (`StartStandalone` + `Wait`).
+
 ```bash
 # legacy one-liner without submodules still installs the CLI module only:
 git clone https://github.com/wisp-trading/wisp
