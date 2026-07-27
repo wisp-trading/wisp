@@ -10,6 +10,7 @@ import (
 	"github.com/donderom/bubblon"
 	"github.com/wisp-trading/connectors/pkg/connectors/types"
 	"github.com/wisp-trading/sdk/pkg/types/config"
+	"github.com/wisp-trading/sdk/pkg/types/connector"
 	"github.com/wisp-trading/wisp/internal/router"
 	"github.com/wisp-trading/wisp/internal/ui"
 )
@@ -125,22 +126,26 @@ func (m *ConnectorFormModel) buildForm() *huh.Form {
 		))
 	}
 
-	// Get required credential fields from SDK (e.g., hyperliquid needs "private_key" and "account_address")
+	// Field names from connector NewConfig() via existing GetRequiredCredentialFields.
 	requiredFields := m.connectorSvc.GetRequiredCredentialFields(m.exchangeName)
-	if len(requiredFields) == 0 {
-		// Fallback to common fields if SDK doesn't provide
-		requiredFields = []string{"api_key", "api_secret"}
-	}
 
-	// Add title as a Note field
 	var credFields []huh.Field
-
-	// Title
 	titleEmoji := "➕"
 	titleText := "Add Connector"
 	if m.isEditMode {
 		titleEmoji = "✏️"
 		titleText = "Edit Connector"
+	}
+
+	if len(requiredFields) == 0 {
+		// Do not invent api_key/api_secret — empty means unregistered or no fields.
+		m.credentialPointers = map[string]*string{}
+		credFields = append(credFields,
+			huh.NewNote().
+				Title(fmt.Sprintf("%s  %s", titleEmoji, m.exchangeName)).
+				Description("No credential fields discovered (connector missing or NewConfig empty)."),
+		)
+		return huh.NewForm(huh.NewGroup(credFields...)).WithTheme(huh.ThemeCharm())
 	}
 
 	credFields = append(credFields,
@@ -356,11 +361,19 @@ func (m *ConnectorFormModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 }
 
 func (m *ConnectorFormModel) saveConnector() error {
-	// Validate credentials are not empty
-	for key, value := range m.connector.Credentials {
-		if strings.TrimSpace(value) == "" {
+	// Required keys from the same discovery path as the form.
+	for _, key := range m.connectorSvc.GetRequiredCredentialFields(m.connector.Name) {
+		if strings.TrimSpace(m.connector.Credentials[key]) == "" {
 			return fmt.Errorf("credential '%s' cannot be empty", formatFieldName(key))
 		}
+	}
+
+	// Full connector validation (MapToSDKConfig + Config.Validate).
+	if err := m.connectorSvc.ValidateConnectorConfig(
+		connector.ExchangeName(m.connector.Name),
+		m.connector,
+	); err != nil {
+		return err
 	}
 
 	if m.isEditMode {
@@ -441,11 +454,8 @@ func (m *ConnectorFormModel) renderDetailView() string {
 	details.WriteString(ui.SectionHeaderStyle.Render("Credentials"))
 	details.WriteString("\n\n")
 
-	// Get required fields from SDK for this exchange
+	// Same discovery path as the edit form (NewConfig JSON keys).
 	requiredFields := m.connectorSvc.GetRequiredCredentialFields(m.connector.Name)
-	if len(requiredFields) == 0 {
-		requiredFields = []string{"api_key", "api_secret"}
-	}
 
 	// Show each credential field dynamically
 	for _, fieldName := range requiredFields {
