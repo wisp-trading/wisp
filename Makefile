@@ -1,98 +1,24 @@
-.PHONY: build install test clean run-init run-backtest run-interactive help setup
+.PHONY: help submodules build smoke test
 
-# Setup development environment (run once after cloning)
-setup:
-	@echo "🔧 Configuring git hooks..."
-	@git config core.hooksPath .githooks
-	@chmod +x .githooks/pre-commit
-	@chmod +x .git/hooks/pre-commit 2>/dev/null || true
-	@echo "📦 Installing golangci-lint..."
-	@curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(shell go env GOPATH)/bin
-	@echo "✅ Setup complete"
-
-# Build the CLI binary
-build:
-	@echo "🔨 Building Wisp CLI..."
-	@go build -o wisp .
-	@echo "✅ Build complete: ./wisp"
-
-# Install the CLI to $GOPATH/bin
-install:
-	@echo "📦 Installing Wisp CLI..."
-	@go build -o $(shell go env GOPATH)/bin/wisp .
-	@echo "✅ Installed to $(shell go env GOPATH)/bin/wisp"
-	@echo "💡 Run 'wisp --help' to get started"
-
-# Run tests
-test:
-	@echo "🧪 Running tests..."
-	@go test ./... -v
-
-# Clean build artifacts
-clean:
-	@echo "🧹 Cleaning..."
-	@rm -f wisp
-	@rm -rf dist/
-	@echo "✅ Clean complete"
-
-# Run init command with project name (usage: make run-init PROJECT=my-project)
-run-init: build
-	@if [ -z "$(PROJECT)" ]; then \
-		echo "❌ Error: PROJECT is required"; \
-		echo "Usage: make run-init PROJECT=my-project"; \
-		exit 1; \
-	fi
-	@echo "🚀 Running wisp init $(PROJECT)..."
-	@./wisp init $(PROJECT)
-
-# Run backtest command
-run-backtest: build
-	@echo "🚀 Running wisp backtest..."
-	@./wisp backtest
-
-# Run interactive backtest
-run-interactive: build
-	@echo "🚀 Running wisp backtest --interactive..."
-	@./wisp backtest --interactive
-
-# Run dry-run
-run-dry: build
-	@echo "🚀 Running wisp backtest --dry-run..."
-	@./wisp backtest --dry-run
-
-# Tidy dependencies
-tidy:
-	@echo "📦 Tidying dependencies..."
-	@go mod tidy
-	@echo "✅ Dependencies tidied"
-
-# Format code
-fmt:
-	@echo "🎨 Formatting code..."
-	@go fmt ./...
-	@echo "✅ Code formatted"
-
-# Run linter
-lint:
-	@echo "🔍 Running linter..."
-	@golangci-lint run
-	@echo "✅ Linting complete"
-
-# Show help
 help:
-	@echo "Wisp CLI - Makefile targets:"
-	@echo ""
-	@echo "  build              Build the CLI binary"
-	@echo "  install            Install to \$$GOPATH/bin"
-	@echo "  test               Run tests"
-	@echo "  clean              Clean build artifacts"
-	@echo "  run-init           Run wisp init (usage: make run-init PROJECT=my-project)"
-	@echo "  run-backtest       Run wisp backtest"
-	@echo "  run-interactive    Run wisp backtest --interactive"
-	@echo "  run-dry            Run wisp backtest --dry-run"
-	@echo "  tidy               Tidy go.mod dependencies"
-	@echo "  fmt                Format code"
-	@echo "  lint               Run linter"
-	@echo "  help               Show this help message"
-	@echo ""
+	@echo "Targets: submodules | build | smoke | test"
 
+submodules:
+	git submodule update --init --recursive
+
+build:
+	mkdir -p bin
+	go build -o bin/wisp .
+
+# Compile CLI + reference standalone binary (green packaging path)
+smoke: submodules build
+	cd examples/reference-standalone && go mod tidy && go build -o reference-standalone .
+	@echo ""
+	@echo "OK: bin/wisp and examples/reference-standalone/reference-standalone"
+	@echo "Run (needs wisp.yml with enabled connectors):"
+	@echo "  ./examples/reference-standalone/reference-standalone \\"
+	@echo "    --config ./examples/reference-standalone \\"
+	@echo "    --wisp ./wisp.yml"
+
+test:
+	go test ./internal/services/live/manager/ ./internal/services/compile/ ./sdk/pkg/lifecycle/ ./sdk/pkg/runtime/ -count=1
