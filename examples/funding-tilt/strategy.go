@@ -9,43 +9,73 @@ import (
 	"github.com/wisp-trading/sdk/pkg/types/connector"
 	"github.com/wisp-trading/sdk/pkg/types/portfolio"
 	"github.com/wisp-trading/sdk/pkg/types/strategy"
-	"github.com/wisp-trading/sdk/pkg/types/wisp"
+	wisptypes "github.com/wisp-trading/sdk/pkg/types/wisp"
+	"github.com/wisp-trading/sdk/pkg/types/wisp/numerical"
 )
 
 // FundingTilt fades crowded Hyperliquid perp positioning using funding + RSI.
 //
-// Thesis (2026 crypto meta): positive funding + overbought RSI → shorts are paid
-// by crowded longs; inverse for negative funding. Single-venue (no spot hedge).
+// Thesis: positive funding + overbought RSI → shorts are paid by crowded longs;
+// inverse for negative funding. Single-venue (no spot hedge).
 //
-// Default dry_run=true — logs decisions and EmitStatus only. Set FUNDING_TILT_LIVE=1
-// to place orders via wisp.Perp().Emit (still needs keys in ~/.wisp/connectors.yml).
+// Default dry_run=true. Live only when:
+//   - control: WISP_RUN_MODE=live and not WISP_DRY_RUN (registry live arm)
+//   - CLI: FUNDING_TILT_LIVE=1 without WISP_DRY_RUN
+//
+// Position is seeded from the exchange on start to avoid double-entry after restart.
 type FundingTilt struct {
 	strategy.BaseStrategy
-	k wisp.Wisp
+	k wisptypes.Wisp
 
-	exchange connector.ExchangeName
-	params   Params
-	dryRun   bool
-	pos      Side
-	tick     time.Duration
-	interval string
-	limit    int
+	exchange   connector.ExchangeName
+	params     Params
+	dryRun     bool
+	pos        Side
+	posSeeded  bool
+	posUnknown bool // live: refuse emit until position known
+	tick       time.Duration
+	interval   string
+	limit      int
+	configDir  string
 }
 
-func NewFundingTilt(k wisp.Wisp) strategy.Strategy {
+// NewFundingTilt builds the strategy. configDir is used to load config.yml params.
+func NewFundingTilt(k wisptypes.Wisp, configDir string) strategy.Strategy {
+	params, tick, interval, limit, err := LoadParamsFromConfigDir(configDir)
+	if err != nil {
+		// Fall back to defaults; log once Start has logger.
+		params = DefaultParams()
+		tick = 30 * time.Second
+		interval = "15m"
+		limit = 60
+	}
+
 	s := &FundingTilt{
-		k:        k,
-		exchange: connector.ExchangeName("hyperliquid"),
-		params:   DefaultParams(),
-		dryRun:   true,
-		pos:      Flat,
-		tick:     30 * time.Second,
-		interval: "15m",
-		limit:    60,
+		k:         k,
+		exchange:  connector.ExchangeName("hyperliquid"),
+		params:    params,
+		dryRun:    resolveDryRun(),
+		pos:       Flat,
+		tick:      tick,
+		interval:  interval,
+		limit:     limit,
+		configDir: configDir,
 	}
-	if os.Getenv("FUNDING_TILT_LIVE") == "1" {
-		s.dryRun = false
+
+	// Data-flow / monitor tests: thresholds no normal market should hit.
+	if os.Getenv("FUNDING_TILT_SAFE") == "1" {
+		s.params = Params{
+			FundingEntry:  numerical.NewFromFloat(0.5),
+			FundingExit:   numerical.NewFromFloat(0.25),
+			RSIOverbought: numerical.NewFromFloat(99.5),
+			RSIOversold:   numerical.NewFromFloat(0.5),
+			RSIMid:        numerical.NewFromFloat(50),
+			Size:          numerical.NewFromFloat(0.001),
+		}
+		s.params = clampParams(s.params)
+		s.tick = 15 * time.Second
 	}
+
 	s.BaseStrategy = *strategy.NewBaseStrategy(strategy.BaseStrategyConfig{
 		Name: "funding-tilt",
 	})
@@ -64,11 +94,15 @@ func (s *FundingTilt) run(ctx context.Context) {
 		"exchange", string(s.exchange),
 		"pair", pair.Symbol(),
 		"dry_run", s.dryRun,
+		"size", s.params.Size.String(),
+		"hard_max_size", fmt.Sprintf("%g", HardMaxSizeBTC),
 		"funding_entry", s.params.FundingEntry.String(),
+		"config_dir", s.configDir,
 	)
 
-	// Brief warm-up for ingestors
+	// Warm-up for ingestors + position feed
 	time.Sleep(2 * time.Second)
+	s.seedPosition(pair)
 
 	t := time.NewTicker(s.tick)
 	defer t.Stop()
@@ -79,9 +113,39 @@ func (s *FundingTilt) run(ctx context.Context) {
 			s.k.Log().Info("funding-tilt stopped")
 			return
 		case <-t.C:
+			if !s.posSeeded {
+				s.seedPosition(pair)
+			}
 			s.tickOnce(pair)
 		}
 	}
+}
+
+func (s *FundingTilt) seedPosition(pair portfolio.Pair) {
+	pos, ok := s.k.Perp().Position(s.exchange, pair)
+	if !ok || pos == nil {
+		// No row: treat as flat for dry_run; live holds emit until seen once.
+		if s.dryRun {
+			s.pos = Flat
+			s.posSeeded = true
+			s.posUnknown = false
+			s.k.Log().Info("funding-tilt seed", "pos", "flat", "source", "no_position_row")
+			return
+		}
+		s.posUnknown = true
+		s.k.Log().Info("funding-tilt seed waiting", "reason", "no exchange position yet")
+		return
+	}
+
+	side := SideFromExchange(pos.Size, string(pos.Side))
+	s.pos = side
+	s.posSeeded = true
+	s.posUnknown = false
+	s.k.Log().Info("funding-tilt seed",
+		"pos", sideName(side),
+		"size", pos.Size.String(),
+		"side", string(pos.Side),
+	)
 }
 
 func (s *FundingTilt) tickOnce(pair portfolio.Pair) {
@@ -126,6 +190,7 @@ func (s *FundingTilt) tickOnce(pair portfolio.Pair) {
 		"pos":     sideName(s.pos),
 		"dry_run": fmt.Sprintf("%v", s.dryRun),
 		"action":  actionName(act),
+		"size":    s.params.Size.String(),
 	}
 
 	switch act {
@@ -146,6 +211,11 @@ func (s *FundingTilt) tickOnce(pair portfolio.Pair) {
 
 func (s *FundingTilt) execute(pair portfolio.Pair, act Action, reason string, fields map[string]string) {
 	qty := s.params.Size
+	max := numerical.NewFromFloat(HardMaxSizeBTC)
+	if qty.GreaterThan(max) {
+		qty = max
+	}
+
 	s.k.Log().Info("funding-tilt signal",
 		"action", actionName(act),
 		"reason", reason,
@@ -157,6 +227,12 @@ func (s *FundingTilt) execute(pair portfolio.Pair, act Action, reason string, fi
 		s.applyLocal(act)
 		fields["pos"] = sideName(s.pos)
 		s.status("in_trade", "DRY "+reason, fields)
+		return
+	}
+
+	if s.posUnknown || !s.posSeeded {
+		s.k.Log().Info("refusing live emit until position seeded")
+		s.status("error", "live blocked: position not seeded", fields)
 		return
 	}
 

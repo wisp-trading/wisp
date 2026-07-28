@@ -1,11 +1,12 @@
 // funding-tilt: Hyperliquid perp funding + RSI fade strategy.
 //
 //	cd examples/funding-tilt
-//	go test .          # pure decision logic
-//	go run .           # needs ~/.wisp/connectors.yml (Settings → hyperliquid)
-//	FUNDING_TILT_LIVE=1 go run .   # actually place orders (still dry_run param careful)
+//	go test .          # pure decision logic + params
+//	go run .           # dry_run (needs ~/.wisp/connectors.yml)
+//	FUNDING_TILT_LIVE=1 go run .   # live CLI (dedicated wallet only)
 //
-// Default is dry_run (paper): watches HL funding/RSI and logs signals only.
+// Prefer starting via wisp-control registry (StartInstance) for dual gate:
+// dry_run registry injects WISP_DRY_RUN=1 so live env alone cannot arm.
 package main
 
 import (
@@ -17,6 +18,7 @@ import (
 	"github.com/wisp-trading/connectors/pkg/connectors"
 	"github.com/wisp-trading/sdk/pkg/types/runtime"
 	"github.com/wisp-trading/sdk/pkg/types/strategy"
+	wisptypes "github.com/wisp-trading/sdk/pkg/types/wisp"
 	"github.com/wisp-trading/sdk/wisp"
 	"go.uber.org/fx"
 )
@@ -35,7 +37,9 @@ func main() {
 	app := fx.New(
 		connectors.Module,
 		wisp.Module,
-		fx.Provide(NewFundingTilt),
+		fx.Provide(func(k wisptypes.Wisp) strategy.Strategy {
+			return NewFundingTilt(k, *configDir)
+		}),
 		fx.Populate(&rt, &strat),
 		fx.NopLogger,
 	)
@@ -49,7 +53,11 @@ func main() {
 		log.Fatalf("StartStandalone: %v\n\nHint: wisp → Settings → add hyperliquid keys to ~/.wisp/connectors.yml", err)
 	}
 
-	log.Println("funding-tilt running — dry_run unless FUNDING_TILT_LIVE=1; Ctrl+C or Monitor → Stop")
+	mode := "dry_run"
+	if !resolveDryRun() {
+		mode = "LIVE"
+	}
+	log.Printf("funding-tilt running mode=%s — Ctrl+C or Monitor → Stop", mode)
 	if err := rt.Wait(); err != nil {
 		log.Printf("Wait: %v", err)
 		os.Exit(1)

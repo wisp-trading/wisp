@@ -7,16 +7,16 @@ assets:
     - base: BTC
       quote: USD
 parameters:
-  dry_run: true
+  # Live arm is NOT this flag — use control registry run_mode / FUNDING_TILT_LIVE.
   # Hyperliquid pays funding hourly. Positive rate → longs pay shorts.
-  # Entry when |funding| exceeds this (as absolute decimal, e.g. 0.00005 = 0.005%).
+  # Entry when |funding| exceeds this (absolute decimal, e.g. 0.00005 = 0.005%/hr).
   funding_entry: "0.00005"
   funding_exit: "0.00001"
   rsi_period: 14
   rsi_overbought: "70"
   rsi_oversold: "30"
   rsi_mid: "50"
-  # Order size in base (BTC). Tiny for trials.
+  # Order size in base (BTC). Hard-capped in code at 0.01 BTC.
   size: "0.001"
   kline_interval: "15m"
   kline_limit: 60

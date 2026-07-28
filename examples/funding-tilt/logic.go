@@ -39,6 +39,25 @@ const (
 	ActionExitShort
 )
 
+// SideFromExchange maps exchange position size + side → inventory stance.
+// Zero size → Flat. BUY/long size → Long; SELL/short → Short.
+// If side is unknown, sign of size is used (positive long, negative short).
+func SideFromExchange(size numerical.Decimal, sideLabel string) Side {
+	if size.IsZero() {
+		return Flat
+	}
+	switch sideLabel {
+	case "BUY", "buy", "LONG", "long":
+		return Long
+	case "SELL", "sell", "SHORT", "short":
+		return Short
+	}
+	if size.IsNegative() {
+		return Short
+	}
+	return Long
+}
+
 // Decide implements funding-tilt + RSI mean-reversion:
 //
 //	Crowded longs  (funding >> 0 + RSI high)  → short

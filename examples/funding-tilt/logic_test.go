@@ -78,3 +78,27 @@ func TestDecideFundingAloneNotEnough(t *testing.T) {
 		t.Fatalf("want None without RSI extreme, got %v", got)
 	}
 }
+
+func TestSideFromExchange(t *testing.T) {
+	if got := SideFromExchange(numerical.NewFromFloat(0), "BUY"); got != Flat {
+		t.Fatalf("zero → Flat, got %v", got)
+	}
+	if got := SideFromExchange(numerical.NewFromFloat(0.01), "BUY"); got != Long {
+		t.Fatalf("BUY → Long, got %v", got)
+	}
+	if got := SideFromExchange(numerical.NewFromFloat(0.01), "SELL"); got != Short {
+		t.Fatalf("SELL → Short, got %v", got)
+	}
+	if got := SideFromExchange(numerical.NewFromFloat(-0.01), ""); got != Short {
+		t.Fatalf("neg size → Short, got %v", got)
+	}
+}
+
+func TestClampHardMaxSize(t *testing.T) {
+	p := DefaultParams()
+	p.Size = numerical.NewFromFloat(1.0) // way above hard max
+	got := clampParams(p)
+	if !got.Size.Equal(numerical.NewFromFloat(HardMaxSizeBTC)) {
+		t.Fatalf("want hard max %g, got %s", HardMaxSizeBTC, got.Size.String())
+	}
+}
