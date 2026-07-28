@@ -15,14 +15,11 @@ import (
 
 // FundingTilt fades crowded Hyperliquid perp positioning using funding + RSI.
 //
-// Thesis: positive funding + overbought RSI → shorts are paid by crowded longs;
-// inverse for negative funding. Single-venue (no spot hedge).
-//
 // Default dry_run=true. Live only when:
-//   - control: WISP_RUN_MODE=live and not WISP_DRY_RUN (registry live arm)
+//   - control: WISP_RUN_MODE=live and not WISP_DRY_RUN (requires arm_live)
 //   - CLI: FUNDING_TILT_LIVE=1 without WISP_DRY_RUN
 //
-// Position is seeded from the exchange on start to avoid double-entry after restart.
+// Live inventory is re-seeded from the exchange; emits await execution result.
 type FundingTilt struct {
 	strategy.BaseStrategy
 	k wisptypes.Wisp
@@ -32,18 +29,20 @@ type FundingTilt struct {
 	dryRun     bool
 	pos        Side
 	posSeeded  bool
-	posUnknown bool // live: refuse emit until position known
+	posUnknown bool
+	inFlight   bool
 	tick       time.Duration
 	interval   string
 	limit      int
 	configDir  string
+	maxDataAge time.Duration
 }
 
 // NewFundingTilt builds the strategy. configDir is used to load config.yml params.
 func NewFundingTilt(k wisptypes.Wisp, configDir string) strategy.Strategy {
 	params, tick, interval, limit, err := LoadParamsFromConfigDir(configDir)
 	if err != nil {
-		// Fall back to defaults; log once Start has logger.
+		// Hard-fail is safer for live; still allow construct — Start logs and uses defaults.
 		params = DefaultParams()
 		tick = 30 * time.Second
 		interval = "15m"
@@ -51,28 +50,32 @@ func NewFundingTilt(k wisptypes.Wisp, configDir string) strategy.Strategy {
 	}
 
 	s := &FundingTilt{
-		k:         k,
-		exchange:  connector.ExchangeName("hyperliquid"),
-		params:    params,
-		dryRun:    resolveDryRun(),
-		pos:       Flat,
-		tick:      tick,
-		interval:  interval,
-		limit:     limit,
-		configDir: configDir,
+		k:          k,
+		exchange:   connector.ExchangeName("hyperliquid"),
+		params:     params,
+		dryRun:     resolveDryRun(),
+		pos:        Flat,
+		tick:       tick,
+		interval:   interval,
+		limit:      limit,
+		configDir:  configDir,
+		maxDataAge: 90 * time.Second,
 	}
 
-	// Data-flow / monitor tests: thresholds no normal market should hit.
+	if err != nil {
+		// Will log after logger available in run
+		_ = err
+	}
+
 	if os.Getenv("FUNDING_TILT_SAFE") == "1" {
-		s.params = Params{
+		s.params = clampParams(Params{
 			FundingEntry:  numerical.NewFromFloat(0.5),
 			FundingExit:   numerical.NewFromFloat(0.25),
 			RSIOverbought: numerical.NewFromFloat(99.5),
 			RSIOversold:   numerical.NewFromFloat(0.5),
 			RSIMid:        numerical.NewFromFloat(50),
 			Size:          numerical.NewFromFloat(0.001),
-		}
-		s.params = clampParams(s.params)
+		})
 		s.tick = 15 * time.Second
 	}
 
@@ -100,7 +103,7 @@ func (s *FundingTilt) run(ctx context.Context) {
 		"config_dir", s.configDir,
 	)
 
-	// Warm-up for ingestors + position feed
+	// Warm-up for ingestors + optional REST-less position feed
 	time.Sleep(2 * time.Second)
 	s.seedPosition(pair)
 
@@ -113,7 +116,8 @@ func (s *FundingTilt) run(ctx context.Context) {
 			s.k.Log().Info("funding-tilt stopped")
 			return
 		case <-t.C:
-			if !s.posSeeded {
+			// Reconcile inventory every tick when live (or until first seed).
+			if !s.dryRun || !s.posSeeded {
 				s.seedPosition(pair)
 			}
 			s.tickOnce(pair)
@@ -124,16 +128,12 @@ func (s *FundingTilt) run(ctx context.Context) {
 func (s *FundingTilt) seedPosition(pair portfolio.Pair) {
 	pos, ok := s.k.Perp().Position(s.exchange, pair)
 	if !ok || pos == nil {
-		// No row: treat as flat for dry_run; live holds emit until seen once.
-		if s.dryRun {
-			s.pos = Flat
-			s.posSeeded = true
-			s.posUnknown = false
-			s.k.Log().Info("funding-tilt seed", "pos", "flat", "source", "no_position_row")
-			return
-		}
-		s.posUnknown = true
-		s.k.Log().Info("funding-tilt seed waiting", "reason", "no exchange position yet")
+		// No row after warm-up: treat as flat (HL often omits flat accounts).
+		// Live used to wait forever — that bricked first entry on flat wallets.
+		s.pos = Flat
+		s.posSeeded = true
+		s.posUnknown = false
+		s.k.Log().Info("funding-tilt seed", "pos", "flat", "source", "no_position_row")
 		return
 	}
 
@@ -148,7 +148,40 @@ func (s *FundingTilt) seedPosition(pair portfolio.Pair) {
 	)
 }
 
+func (s *FundingTilt) exitQty(pair portfolio.Pair) numerical.Decimal {
+	qty := s.params.Size
+	max := numerical.NewFromFloat(HardMaxSizeBTC)
+	if qty.GreaterThan(max) {
+		qty = max
+	}
+	// Prefer exchange size so we don't overshoot / flip after partial fills.
+	if pos, ok := s.k.Perp().Position(s.exchange, pair); ok && pos != nil {
+		ex := pos.Size
+		if ex.IsNegative() {
+			ex = ex.Neg()
+		}
+		if !ex.IsZero() && ex.LessThan(qty) {
+			return ex
+		}
+	}
+	return qty
+}
+
+func (s *FundingTilt) enterQty() numerical.Decimal {
+	qty := s.params.Size
+	max := numerical.NewFromFloat(HardMaxSizeBTC)
+	if qty.GreaterThan(max) {
+		qty = max
+	}
+	return qty
+}
+
 func (s *FundingTilt) tickOnce(pair portfolio.Pair) {
+	if s.inFlight {
+		s.status("in_trade", "order in flight", map[string]string{"pos": sideName(s.pos)})
+		return
+	}
+
 	price, ok := s.k.Perp().Price(s.exchange, pair)
 	if !ok {
 		s.status("scanning", "waiting for mark price", map[string]string{"pair": pair.Symbol()})
@@ -172,6 +205,17 @@ func (s *FundingTilt) tickOnce(pair portfolio.Pair) {
 			"funding": funding.String(),
 		})
 		return
+	}
+
+	// Stale kline gate: last bar open time should be recent enough for the interval.
+	if s.maxDataAge > 0 && len(klines) > 0 {
+		last := klines[len(klines)-1]
+		if !last.OpenTime.IsZero() && time.Since(last.OpenTime) > s.maxDataAge+15*time.Minute {
+			s.status("error", "stale klines — halt emit", map[string]string{
+				"last_open": last.OpenTime.UTC().Format(time.RFC3339),
+			})
+			return
+		}
 	}
 
 	rsi, err := s.k.Indicators().RSI(klines, 14)
@@ -210,10 +254,12 @@ func (s *FundingTilt) tickOnce(pair portfolio.Pair) {
 }
 
 func (s *FundingTilt) execute(pair portfolio.Pair, act Action, reason string, fields map[string]string) {
-	qty := s.params.Size
-	max := numerical.NewFromFloat(HardMaxSizeBTC)
-	if qty.GreaterThan(max) {
-		qty = max
+	var qty numerical.Decimal
+	switch act {
+	case ActionExitLong, ActionExitShort:
+		qty = s.exitQty(pair)
+	default:
+		qty = s.enterQty()
 	}
 
 	s.k.Log().Info("funding-tilt signal",
@@ -236,7 +282,14 @@ func (s *FundingTilt) execute(pair portfolio.Pair, act Action, reason string, fi
 		return
 	}
 
+	s.inFlight = true
+	defer func() { s.inFlight = false }()
+
+	// Emit and await — only mutate local inventory on success.
 	var buildErr error
+	var emitOK bool
+	var emitErr error
+
 	switch act {
 	case ActionEnterLong, ActionExitShort:
 		sig, err := s.k.Perp().Signal(s.GetName()).Buy(pair, s.exchange, qty).Build()
@@ -244,24 +297,51 @@ func (s *FundingTilt) execute(pair portfolio.Pair, act Action, reason string, fi
 			buildErr = err
 			break
 		}
-		s.k.Perp().Emit(sig)
-		s.applyLocal(act)
+		res, ok := s.k.Perp().Emit(sig).AwaitWithTimeout(45 * time.Second)
+		if !ok {
+			emitErr = fmt.Errorf("execution timeout")
+		} else if !res.Success {
+			emitErr = res.Error
+			if emitErr == nil {
+				emitErr = fmt.Errorf("execution failed")
+			}
+		} else {
+			emitOK = true
+		}
 	case ActionEnterShort:
 		sig, err := s.k.Perp().Signal(s.GetName()).SellShort(pair, s.exchange, qty).Build()
 		if err != nil {
 			buildErr = err
 			break
 		}
-		s.k.Perp().Emit(sig)
-		s.applyLocal(act)
+		res, ok := s.k.Perp().Emit(sig).AwaitWithTimeout(45 * time.Second)
+		if !ok {
+			emitErr = fmt.Errorf("execution timeout")
+		} else if !res.Success {
+			emitErr = res.Error
+			if emitErr == nil {
+				emitErr = fmt.Errorf("execution failed")
+			}
+		} else {
+			emitOK = true
+		}
 	case ActionExitLong:
 		sig, err := s.k.Perp().Signal(s.GetName()).Sell(pair, s.exchange, qty).Build()
 		if err != nil {
 			buildErr = err
 			break
 		}
-		s.k.Perp().Emit(sig)
-		s.applyLocal(act)
+		res, ok := s.k.Perp().Emit(sig).AwaitWithTimeout(45 * time.Second)
+		if !ok {
+			emitErr = fmt.Errorf("execution timeout")
+		} else if !res.Success {
+			emitErr = res.Error
+			if emitErr == nil {
+				emitErr = fmt.Errorf("execution failed")
+			}
+		} else {
+			emitOK = true
+		}
 	}
 
 	if buildErr != nil {
@@ -269,6 +349,21 @@ func (s *FundingTilt) execute(pair portfolio.Pair, act Action, reason string, fi
 		s.status("error", buildErr.Error(), fields)
 		return
 	}
+	if !emitOK {
+		msg := "emit failed"
+		if emitErr != nil {
+			msg = emitErr.Error()
+		}
+		s.k.Log().Info("order emit failed — reseed", "err", msg)
+		s.seedPosition(pair)
+		fields["pos"] = sideName(s.pos)
+		s.status("error", msg, fields)
+		return
+	}
+
+	s.applyLocal(act)
+	// Prefer exchange truth after fill.
+	s.seedPosition(pair)
 	fields["pos"] = sideName(s.pos)
 	s.status("in_trade", reason, fields)
 }
