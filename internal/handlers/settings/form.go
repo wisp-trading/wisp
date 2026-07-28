@@ -34,7 +34,7 @@ type ConnectorFormModel struct {
 	enabled      bool
 	fieldNames   []string
 	inputs       []textinput.Model
-	// focus: 0..n-1 inputs, n = enabled toggle, n+1 = Save button
+	// focus: 0..n-1 inputs, n = enabled, n+1 = network, n+2 = Save
 	focus int
 	width int
 }
@@ -134,8 +134,20 @@ func (m *ConnectorFormModel) focusIndex(i int) {
 }
 
 func (m *ConnectorFormModel) maxFocus() int {
-	// fields + enabled + save
-	return len(m.inputs) + 1
+	// fields + enabled + network + save
+	return len(m.inputs) + 2
+}
+
+func (m *ConnectorFormModel) focusEnabled() int  { return len(m.inputs) }
+func (m *ConnectorFormModel) focusNetwork() int  { return len(m.inputs) + 1 }
+func (m *ConnectorFormModel) focusSave() int     { return len(m.inputs) + 2 }
+
+func (m *ConnectorFormModel) toggleNetwork() {
+	if m.network == "testnet" {
+		m.network = "mainnet"
+	} else {
+		m.network = "testnet"
+	}
 }
 
 func isSecretField(name string) bool {
@@ -253,10 +265,13 @@ func (m *ConnectorFormModel) updateEditor(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return m, textinput.Blink
 		case "enter":
 			switch {
-			case m.focus == len(m.inputs):
+			case m.focus == m.focusEnabled():
 				m.enabled = !m.enabled
 				return m, nil
-			case m.focus == m.maxFocus():
+			case m.focus == m.focusNetwork():
+				m.toggleNetwork()
+				return m, nil
+			case m.focus == m.focusSave():
 				return m, m.trySave()
 			case m.focus < len(m.inputs):
 				next := m.focus + 1
@@ -264,8 +279,12 @@ func (m *ConnectorFormModel) updateEditor(msg tea.Msg) (tea.Model, tea.Cmd) {
 				return m, textinput.Blink
 			}
 		case " ":
-			if m.focus == len(m.inputs) {
+			if m.focus == m.focusEnabled() {
 				m.enabled = !m.enabled
+				return m, nil
+			}
+			if m.focus == m.focusNetwork() {
+				m.toggleNetwork()
 				return m, nil
 			}
 			// else space goes to textinput
@@ -405,15 +424,27 @@ func (m *ConnectorFormModel) renderEditor() string {
 	if m.enabled {
 		enVal = "Yes"
 	}
-	if m.focus == len(m.inputs) {
+	if m.focus == m.focusEnabled() {
 		b.WriteString(ui.SelectedItemStyle.Render(fmt.Sprintf("▶ %s: [%s]  (space/enter toggle)", enLabel, enVal)))
 	} else {
 		b.WriteString(ui.ItemStyle.Render(fmt.Sprintf("  %s: [%s]", enLabel, enVal)))
 	}
 	b.WriteString("\n\n")
 
+	// Network: mainnet | testnet (single row per exchange until multi-env YAML — see #40)
+	netVal := m.network
+	if netVal == "" {
+		netVal = "mainnet"
+	}
+	if m.focus == m.focusNetwork() {
+		b.WriteString(ui.SelectedItemStyle.Render(fmt.Sprintf("▶ Network: [%s]  (space/enter toggle)", netVal)))
+	} else {
+		b.WriteString(ui.ItemStyle.Render(fmt.Sprintf("  Network: [%s]", netVal)))
+	}
+	b.WriteString("\n\n")
+
 	// Save
-	if m.focus == m.maxFocus() {
+	if m.focus == m.focusSave() {
 		b.WriteString(ui.SelectedItemStyle.Render("▶ [ Save ]"))
 	} else {
 		b.WriteString(ui.ItemStyle.Render("  [ Save ]"))
