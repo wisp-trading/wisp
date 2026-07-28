@@ -6,7 +6,6 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
-	"syscall"
 
 	sdkconfig "github.com/wisp-trading/sdk/pkg/types/config"
 	"github.com/wisp-trading/sdk/pkg/types/logging"
@@ -53,9 +52,7 @@ func (ps *processSpawner) Spawn(ctx context.Context, strategy *sdkconfig.Strateg
 
 	// Detach from parent process group so the strategy survives TUI exit.
 	_ = ctx
-	cmd.SysProcAttr = &syscall.SysProcAttr{
-		Setpgid: true,
-	}
+	cmd.SysProcAttr = detachSysProcAttr()
 	cmd.Stdout = stdoutFile
 	cmd.Stderr = stderrFile
 

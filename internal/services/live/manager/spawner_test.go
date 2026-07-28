@@ -95,9 +95,9 @@ var _ = Describe("ProcessSpawner", func() {
 			cmd, err := spawner.Spawn(ctx, testStrategy)
 			Expect(err).NotTo(HaveOccurred())
 
-			// Verify SysProcAttr is set for process group
+			// Verify SysProcAttr is set for detachment (platform-specific fields)
 			Expect(cmd.SysProcAttr).NotTo(BeNil())
-			Expect(cmd.SysProcAttr.Setpgid).To(BeTrue())
+			expectDetachedSysProcAttr(cmd.SysProcAttr)
 		})
 
 		It("should create log directory structure", func() {
@@ -277,14 +277,9 @@ var _ = Describe("ProcessSpawner", func() {
 			cmd, err := spawner.Spawn(ctx, testStrategy)
 			Expect(err).NotTo(HaveOccurred())
 
-			// Verify the process group settings
+			// Verify detachment settings (Setpgid on Unix, process group on Windows)
 			Expect(cmd.SysProcAttr).NotTo(BeNil())
-			sysProcAttr := cmd.SysProcAttr
-			Expect(sysProcAttr.Setpgid).To(BeTrue())
-
-			// This ensures child process survives parent exit
-			pgid := sysProcAttr.Pgid
-			Expect(pgid).To(Equal(0)) // 0 means create new process group
+			expectDetachedSysProcAttr(cmd.SysProcAttr)
 		})
 	})
 
