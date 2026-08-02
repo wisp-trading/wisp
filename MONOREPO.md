@@ -51,6 +51,19 @@ go work use ../connectors   # temporary; do not commit unless intentional
 
 Default product builds use **released** `connectors` module versions from `go.mod` — no submodule required.
 
+### Composition (avoid loading every venue)
+
+Strategies should import **only the venue modules they use** (e.g. `hyperliquid.Module`),
+not `connectors.Module` (the bag of every exchange). Settings/CLI may keep the bag for discovery.
+
+Live-exchange integration tests live next to each venue package (`//go:build integration`)
+and share harnesses from `connectors/pkg/testing/connector`. Run one venue:
+
+```bash
+cd ../connectors
+make test-integration PKG=./pkg/connectors/hyperliquid
+```
+
 ## Develop in sdk
 
 ```bash

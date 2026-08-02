@@ -94,7 +94,7 @@ import (
 	"log"
 	"os"
 
-	"github.com/wisp-trading/connectors/pkg/connectors"
+	"github.com/wisp-trading/connectors/pkg/connectors/hyperliquid"
 	"github.com/wisp-trading/sdk/pkg/types/runtime"
 	"github.com/wisp-trading/sdk/pkg/types/strategy"
 	"github.com/wisp-trading/sdk/wisp"
@@ -114,7 +114,10 @@ func main() {
 	)
 
 	app := fx.New(
-		connectors.Module,
+		// Import only venues this strategy uses (matches config.yml exchanges).
+		// Multi-venue: add more modules (e.g. bybit/perp.Module) — avoid connectors.Module
+		// unless you intentionally want every exchange.
+		hyperliquid.Module,
 		wisp.Module,
 		fx.Provide(NewStrategy),
 		fx.Populate(&rt, &strat),

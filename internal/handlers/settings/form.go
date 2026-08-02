@@ -138,9 +138,9 @@ func (m *ConnectorFormModel) maxFocus() int {
 	return len(m.inputs) + 2
 }
 
-func (m *ConnectorFormModel) focusEnabled() int  { return len(m.inputs) }
-func (m *ConnectorFormModel) focusNetwork() int  { return len(m.inputs) + 1 }
-func (m *ConnectorFormModel) focusSave() int     { return len(m.inputs) + 2 }
+func (m *ConnectorFormModel) focusEnabled() int { return len(m.inputs) }
+func (m *ConnectorFormModel) focusNetwork() int { return len(m.inputs) + 1 }
+func (m *ConnectorFormModel) focusSave() int    { return len(m.inputs) + 2 }
 
 func (m *ConnectorFormModel) toggleNetwork() {
 	if m.network == "testnet" {

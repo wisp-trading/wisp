@@ -13,7 +13,7 @@ import (
 	"log"
 	"os"
 
-	"github.com/wisp-trading/connectors/pkg/connectors"
+	"github.com/wisp-trading/connectors/pkg/connectors/hyperliquid"
 	"github.com/wisp-trading/sdk/pkg/types/runtime"
 	"github.com/wisp-trading/sdk/pkg/types/strategy"
 	"github.com/wisp-trading/sdk/wisp"
@@ -34,7 +34,8 @@ func main() {
 	)
 
 	app := fx.New(
-		connectors.Module,
+		// Compose only venues listed in config.yml (here: hyperliquid).
+		hyperliquid.Module,
 		wisp.Module,
 		fx.Provide(NewReferenceStrategy),
 		fx.Populate(&rt, &strat),

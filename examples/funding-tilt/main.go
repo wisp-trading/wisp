@@ -15,7 +15,7 @@ import (
 	"log"
 	"os"
 
-	"github.com/wisp-trading/connectors/pkg/connectors"
+	"github.com/wisp-trading/connectors/pkg/connectors/hyperliquid"
 	"github.com/wisp-trading/sdk/pkg/types/runtime"
 	"github.com/wisp-trading/sdk/pkg/types/strategy"
 	wisptypes "github.com/wisp-trading/sdk/pkg/types/wisp"
@@ -35,7 +35,8 @@ func main() {
 	)
 
 	app := fx.New(
-		connectors.Module,
+		// Only the venues this strategy uses — not connectors.Module (all venues).
+		hyperliquid.Module,
 		wisp.Module,
 		fx.Provide(func(k wisptypes.Wisp) strategy.Strategy {
 			return NewFundingTilt(k, *configDir)

@@ -57,7 +57,7 @@ func (s *liveService) ExecuteStrategy(ctx context.Context, strategy *config.Stra
 	connectorConfigs, err := s.connectorService.GetConnectorConfigsForStrategy(strategy.Exchanges)
 	if err != nil {
 		return fmt.Errorf(
-			"cannot start strategy '%s': %w\n\nFix: wisp → Settings → add/enable keys for %v (~/.wisp/connectors.yml)\nInclude connectors.Module in the strategy fx graph",
+			"cannot start strategy '%s': %w\n\nFix: wisp → Settings → add/enable keys for %v (~/.wisp/connectors.yml)\nInclude each venue Module (e.g. hyperliquid.Module) in the strategy fx graph",
 			strategy.Name, err, strategy.Exchanges,
 		)
 	}

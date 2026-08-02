@@ -6,9 +6,11 @@ toolchain go1.26.5
 // Connectors stay a separate module (go get / local replace when needed).
 // Green Tea GC is default on Go 1.26.
 // Private alpha is never included.
+//
+// Local connectors development (optional, do not commit):
+//   go work use ../connectors
 
 use (
 	.
-	../connectors
 	./sdk
 )

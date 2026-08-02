@@ -148,7 +148,3 @@ require (
 )
 
 replace github.com/GoPolymarket/polymarket-go-sdk => github.com/lwtsn/polymarket-go-sdk v0.0.0-20260727081153-a4fc97e5cc12
-
-replace github.com/wisp-trading/connectors => ../connectors
-
-replace github.com/wisp-trading/sdk => ./sdk

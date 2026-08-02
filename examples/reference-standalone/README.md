@@ -9,6 +9,7 @@ fx.Start → runtime.StartStandalone(strategy, configDir, settingsPath) → runt
 ```
 
 - `settingsPath` empty → `~/.wisp/connectors.yml` (or `WISP_SETTINGS` / project-local migration)
+- fx graph wires **only** `hyperliquid.Module` (venues listed in `config.yml`) — not `connectors.Module`
 - `Wait()` blocks until **SIGINT/SIGTERM** or monitoring **POST /shutdown**
 - Then performs a single clean `Stop` and the process exits
 
